@@ -12,6 +12,7 @@ export function useHandTracking(video: HTMLVideoElement | null) {
     const [landmarks, setLandmarks] = useState<HandLandmark[] | null>(null);
     const handLandmarkerRef = useRef<HandLandmarker | null>(null);
     const requestRef = useRef<number>();
+    const [isModelLoaded, setIsModelLoaded] = useState(false);
 
     useEffect(() => {
         async function initMediaPipe() {
@@ -30,6 +31,7 @@ export function useHandTracking(video: HTMLVideoElement | null) {
                 });
 
                 console.log("MediaPipe HandLandmarker loaded");
+                setIsModelLoaded(true);
             } catch (error) {
                 console.error("Error loading MediaPipe:", error);
             }
@@ -71,7 +73,7 @@ export function useHandTracking(video: HTMLVideoElement | null) {
         return () => {
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         };
-    }, [video, handLandmarkerRef.current]);
+    }, [video, isModelLoaded]);
 
     return landmarks;
 }

@@ -12,7 +12,11 @@ export function VideoFeed({ onStreamReady }: VideoFeedProps) {
         async function init() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 640, height: 480 },
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: "user"
+                    },
                 });
 
                 if (videoRef.current) {
@@ -36,8 +40,11 @@ export function VideoFeed({ onStreamReady }: VideoFeedProps) {
                 position: "fixed",
                 top: 0,
                 left: 0,
-                opacity: 0, // Hidden but playing
-                pointerEvents: 'none'
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                zIndex: -1,
+                transform: "scaleX(-1)", // Mirror effect
             }}
             playsInline
             muted

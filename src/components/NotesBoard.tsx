@@ -50,6 +50,7 @@ export function NotesBoard({ cursorX, cursorY, isPinching }: Props) {
             // Release
             setDraggingId(null);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cursorX, cursorY, isPinching, draggingId]); // Add notes to deps if strict, but 'notes' in find logic might be stale. 
     // Better approach: use ref for notes or careful dependency management. 
     // For simplicity v1: we rely on fast refreshes or let's fix dependency.

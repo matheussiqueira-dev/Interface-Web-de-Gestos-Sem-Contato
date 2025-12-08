@@ -13,16 +13,15 @@ function distance(a: HandLandmark, b: HandLandmark) {
 }
 
 // Thumb Tip: 4, Index Tip: 8
-export function detectPinch(landmarks: HandLandmark[]): boolean {
+export function detectPinch(landmarks: HandLandmark[], threshold = 0.05): boolean {
     if (!landmarks || landmarks.length < 21) return false;
 
     const thumbTip = landmarks[4];
     const indexTip = landmarks[8];
 
     const d = distance(thumbTip, indexTip);
-    const THRESHOLD = 0.05; // 5% of viewport essentially
 
-    return d < THRESHOLD;
+    return d < threshold;
 }
 
 // Fist: fingers curled down
