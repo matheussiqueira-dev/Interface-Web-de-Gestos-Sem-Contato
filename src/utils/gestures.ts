@@ -1,10 +1,5 @@
 // src/utils/gestures.ts
-
-export interface HandLandmark {
-    x: number;
-    y: number;
-    z: number;
-}
+import type { HandLandmark } from "../types/hand";
 
 function distance(a: HandLandmark, b: HandLandmark) {
     const dx = a.x - b.x;

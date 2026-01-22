@@ -14,6 +14,8 @@ Touchless Web Gesture Interface é uma aplicação web que permite aos usuários
 - **Quadro Interativo**:
     - **Notas Adesivas**: Usuários podem pegar e mover notas adesivas virtuais usando o gesto de pinça.
     - **Tela de Desenho**: Capacidades de desenho livre ativadas por gestos.
+- **Painel de Status**: Exibe câmera, carregamento do modelo e detecção de mão em tempo real.
+- **Controles Avançados**: Limpeza do quadro sem recarregar e pausa do rastreamento.
 - **Arquitetura Moderna**: Construído com React, TypeScript e Vite para performance e manutenibilidade.
 
 ## Stack Tecnológico

@@ -7,26 +7,63 @@ interface Props {
     isPinching: boolean;
     drawingEnabled: boolean;
     color: string;
+    width: number;
+    height: number;
+    dpr: number;
+    clearSignal: number;
+    handDetected: boolean;
 }
 
-export function CanvasOverlay({ cursorX, cursorY, isPinching, drawingEnabled, color }: Props) {
+export function CanvasOverlay({
+    cursorX,
+    cursorY,
+    isPinching,
+    drawingEnabled,
+    color,
+    width,
+    height,
+    dpr,
+    clearSignal,
+    handDetected,
+}: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const lastPos = useRef<{ x: number, y: number } | null>(null);
+    const contextRef = useRef<CanvasRenderingContext2D | null>(null);
 
     // Resize canvas
     useEffect(() => {
         const cvs = canvasRef.current;
         if (!cvs) return;
-        cvs.width = window.innerWidth;
-        cvs.height = window.innerHeight;
-    }, []);
+        const ctx = cvs.getContext("2d");
+        if (!ctx) return;
+
+        cvs.width = Math.floor(width * dpr);
+        cvs.height = Math.floor(height * dpr);
+        cvs.style.width = `${width}px`;
+        cvs.style.height = `${height}px`;
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        ctx.lineCap = "round";
+        contextRef.current = ctx;
+    }, [width, height, dpr]);
+
+    useEffect(() => {
+        const ctx = contextRef.current;
+        if (!ctx) return;
+        ctx.clearRect(0, 0, width, height);
+        lastPos.current = null;
+    }, [clearSignal, width, height]);
 
     // Drawing Logic
     useEffect(() => {
-        const cvs = canvasRef.current;
-        if (!cvs) return;
-        const ctx = cvs.getContext('2d');
+        const ctx = contextRef.current;
         if (!ctx) return;
+
+        if (!handDetected) {
+            lastPos.current = null;
+            return;
+        }
 
         if (isPinching && drawingEnabled) {
             if (lastPos.current) {
@@ -45,7 +82,7 @@ export function CanvasOverlay({ cursorX, cursorY, isPinching, drawingEnabled, co
             lastPos.current = null;
         }
 
-    }, [cursorX, cursorY, isPinching, drawingEnabled, color]);
+    }, [cursorX, cursorY, isPinching, drawingEnabled, color, handDetected]);
 
     return (
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 50 }}>
@@ -59,7 +96,7 @@ export function CanvasOverlay({ cursorX, cursorY, isPinching, drawingEnabled, co
             <div
                 style={{
                     position: "absolute",
-                    transform: `translate(${cursorX}px, ${cursorY}px)`,
+                    transform: `translate3d(${cursorX}px, ${cursorY}px, 0)`,
                     left: -12, // Center cursor (24px width)
                     top: -12,
                     width: 24,
@@ -69,6 +106,7 @@ export function CanvasOverlay({ cursorX, cursorY, isPinching, drawingEnabled, co
                     backgroundColor: isPinching ? 'rgba(255,255,255,0.3)' : 'transparent',
                     boxShadow: "0 0 10px rgba(0,0,0,0.5)",
                     transition: "transform 0.05s linear",
+                    opacity: handDetected ? 1 : 0,
                     zIndex: 100, // Always on top
                 }}
             />

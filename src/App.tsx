@@ -1,59 +1,125 @@
 // src/App.tsx
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { VideoFeed } from "./components/VideoFeed";
 import { CanvasOverlay } from "./components/CanvasOverlay";
 import { NotesBoard } from "./components/NotesBoard";
 import { useHandTracking } from "./hooks/useHandTracking";
 import { useGestureEngine } from "./hooks/useGestureEngine";
+import { useViewportSize } from "./hooks/useViewportSize";
+import "./App.css";
+
+const DRAW_COLORS = [
+    { label: "Azul", value: "#3b82f6" },
+    { label: "Vermelho", value: "#ef4444" },
+    { label: "Verde", value: "#22c55e" },
+];
 
 function App() {
     const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
-    const [drawingColor, setDrawingColor] = useState("#3b82f6");
+    const [drawingColor, setDrawingColor] = useState(DRAW_COLORS[0].value);
+    const [clearSignal, setClearSignal] = useState(0);
+    const [isTrackingEnabled, setIsTrackingEnabled] = useState(true);
+    const [cameraReady, setCameraReady] = useState(false);
+    const [cameraError, setCameraError] = useState<string | null>(null);
+    const { width, height, dpr } = useViewportSize();
+
+    const handleStreamReady = useCallback((video: HTMLVideoElement) => {
+        setVideoElement(video);
+        setCameraReady(true);
+        setCameraError(null);
+    }, []);
+
+    const handleCameraError = useCallback((message: string) => {
+        setCameraError(message);
+        setCameraReady(false);
+    }, []);
 
     // 1. Hand Tracking from Video
-    const landmarks = useHandTracking(videoElement);
-
-    // 2. Gesture Engine
-    const { cursorX, cursorY, isPinching, isFist } = useGestureEngine(
-        landmarks,
-        window.innerWidth,
-        window.innerHeight
+    const { landmarks, status: trackingStatus, error: trackingError } = useHandTracking(
+        videoElement,
+        isTrackingEnabled
     );
 
+    // 2. Gesture Engine
+    const { cursorX, cursorY, isPinching, isFist, handDetected } = useGestureEngine(
+        landmarks,
+        width,
+        height
+    );
+
+    const statusItems = useMemo(() => {
+        return [
+            {
+                label: "Câmera",
+                value: cameraError ? "Erro" : cameraReady ? "Ativa" : "Inicializando",
+                tone: cameraError ? "danger" : cameraReady ? "success" : "warning",
+            },
+            {
+                label: "Modelo",
+                value:
+                    trackingStatus === "ready"
+                        ? "Carregado"
+                        : trackingStatus === "loading"
+                            ? "Carregando"
+                            : trackingStatus === "error"
+                                ? "Erro"
+                                : "Inativo",
+                tone:
+                    trackingStatus === "ready"
+                        ? "success"
+                        : trackingStatus === "loading"
+                            ? "warning"
+                            : trackingStatus === "error"
+                                ? "danger"
+                                : "neutral",
+            },
+            {
+                label: "Mão",
+                value: handDetected ? "Detectada" : "Procurando",
+                tone: handDetected ? "success" : "warning",
+            },
+            {
+                label: "Modo",
+                value: !isTrackingEnabled ? "Desligado" : isFist ? "Pausado" : "Ativo",
+                tone: !isTrackingEnabled ? "neutral" : isFist ? "warning" : "success",
+            },
+        ];
+    }, [cameraError, cameraReady, trackingStatus, handDetected, isTrackingEnabled, isFist]);
+
     return (
-        <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+        <div className="app">
 
             {/* Background / Video Input */}
-            <VideoFeed onStreamReady={setVideoElement} />
+            <VideoFeed onStreamReady={handleStreamReady} onError={handleCameraError} />
 
             {/* Main UI Area */}
-            <h1 style={{
-                position: 'absolute',
-                top: 20,
-                left: 20,
-                zIndex: 10,
-                fontSize: '1.5rem',
-                textShadow: '0 2px 4px rgba(0,0,0,0.5)'
-            }}>
-                Touchless Interface <span style={{ fontSize: '0.8em', opacity: 0.7 }}>v1.0</span>
-            </h1>
-
-            <div style={{
-                position: 'absolute',
-                top: 20,
-                right: 20,
-                zIndex: 10,
-                display: 'flex',
-                gap: '0.5rem'
-            }}>
-                <div className="glass-panel" style={{ padding: '0.5rem 1rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span>Status:</span>
-                    {landmarks ? (
-                        <span style={{ color: '#4ade80' }}>● Detectado</span>
-                    ) : (
-                        <span style={{ color: '#f87171' }}>● Procurando mão...</span>
-                    )}
+            <header className="app__header">
+                <div className="app__title-row">
+                    <h1 className="app__title">Touchless Interface</h1>
+                    <span className="app__version">v1.2</span>
                 </div>
+                <p className="app__subtitle">Controle por gestos com MediaPipe + React</p>
+            </header>
+
+            <div className="app__status glass-panel">
+                {statusItems.map(item => (
+                    <div key={item.label} className={`status-item status-item--${item.tone}`}>
+                        <span className="status-dot" aria-hidden />
+                        <div className="status-text">
+                            <span className="status-label">{item.label}</span>
+                            <span className="status-value">{item.value}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="app__tips glass-panel">
+                <span className="tips-title">Gestos rápidos</span>
+                <ul>
+                    <li>Pinça para arrastar notas e desenhar.</li>
+                    <li>Abra a mão para soltar ou finalizar o traço.</li>
+                    <li>Feche o punho para pausar o desenho.</li>
+                </ul>
             </div>
 
             {/* Interactive Layer */}
@@ -61,6 +127,9 @@ function App() {
                 cursorX={cursorX}
                 cursorY={cursorY}
                 isPinching={isPinching}
+                width={width}
+                height={height}
+                resetSignal={clearSignal}
             />
 
             {/* Cursor & Drawings */}
@@ -68,44 +137,50 @@ function App() {
                 cursorX={cursorX}
                 cursorY={cursorY}
                 isPinching={isPinching}
-                drawingEnabled={!isFist} // Example: Fist disables drawing or acts as Eraser? keeping simple
+                drawingEnabled={isTrackingEnabled && !isFist}
                 color={drawingColor}
+                width={width}
+                height={height}
+                dpr={dpr}
+                clearSignal={clearSignal}
+                handDetected={handDetected}
             />
 
             {/* Controls Overlay */}
-            <div style={{
-                position: 'absolute',
-                bottom: 40,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 60,
-                display: 'flex',
-                gap: '1rem'
-            }}>
-                <div className="glass-panel" style={{ padding: '10px', display: 'flex', gap: '10px' }}>
-                    <button
-                        className="btn"
-                        style={{ background: '#ef4444' }}
-                        onClick={() => window.location.reload()} // Quick clear
-                    >
-                        Limpar Tela
-                    </button>
-                    <button
-                        className="btn"
-                        style={{ background: drawingColor === '#3b82f6' ? 'white' : '#3b82f6', color: drawingColor === '#3b82f6' ? '#3b82f6' : 'white' }}
-                        onClick={() => setDrawingColor('#3b82f6')}
-                    >
-                        Azul
-                    </button>
-                    <button
-                        className="btn"
-                        style={{ background: drawingColor === '#ef4444' ? 'white' : '#ef4444', color: drawingColor === '#ef4444' ? '#ef4444' : 'white' }}
-                        onClick={() => setDrawingColor('#ef4444')} /* Red */
-                    >
-                        Vermelho
-                    </button>
+            <div className="app__controls glass-panel">
+                <button className="btn btn--danger" onClick={() => setClearSignal(prev => prev + 1)}>
+                    Limpar quadro
+                </button>
+                <button
+                    className="btn btn--ghost"
+                    onClick={() => setIsTrackingEnabled(prev => !prev)}
+                >
+                    {isTrackingEnabled ? "Pausar rastreamento" : "Retomar rastreamento"}
+                </button>
+                <div className="color-picker" role="group" aria-label="Selecionar cor">
+                    {DRAW_COLORS.map(color => (
+                        <button
+                            key={color.value}
+                            type="button"
+                            className={`color-chip ${drawingColor === color.value ? "is-active" : ""}`}
+                            style={{ background: color.value }}
+                            onClick={() => setDrawingColor(color.value)}
+                            aria-label={`Cor ${color.label}`}
+                            title={color.label}
+                        />
+                    ))}
                 </div>
             </div>
+
+            {(cameraError || trackingError) && (
+                <div className="app__overlay">
+                    <div className="app__error-card glass-panel">
+                        <h2>Não foi possível iniciar</h2>
+                        <p>{cameraError || trackingError}</p>
+                        <p>Verifique as permissões da câmera ou recarregue a página.</p>
+                    </div>
+                </div>
+            )}
 
         </div>
     );

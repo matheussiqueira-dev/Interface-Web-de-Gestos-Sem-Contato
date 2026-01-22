@@ -1,5 +1,6 @@
 // src/components/NotesBoard.tsx
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { clamp } from "../utils/geometry";
 
 interface Note {
     id: string;
@@ -13,50 +14,67 @@ interface Props {
     cursorX: number;
     cursorY: number;
     isPinching: boolean;
+    width: number;
+    height: number;
+    resetSignal: number;
 }
 
-export function NotesBoard({ cursorX, cursorY, isPinching }: Props) {
-    const [notes, setNotes] = useState<Note[]>([
-        { id: '1', x: 100, y: 100, text: '👋 Olá! Use "Pinça" para arrastar', color: '#fef3c7' },
-        { id: '2', x: 400, y: 200, text: '🎨 Desenhe no vazio', color: '#dcfce7' },
-    ]);
+const NOTE_WIDTH = 220;
+const NOTE_HEIGHT = 160;
+
+const initialNotes: Note[] = [
+    { id: "1", x: 120, y: 120, text: '👋 Olá! Use "Pinça" para arrastar', color: "#fef3c7" },
+    { id: "2", x: 420, y: 220, text: "🎨 Desenhe no vazio", color: "#dcfce7" },
+    { id: "3", x: 220, y: 420, text: "✊ Feche o punho para pausar o traço", color: "#e0f2fe" },
+];
+
+export function NotesBoard({ cursorX, cursorY, isPinching, width, height, resetSignal }: Props) {
+    const [notes, setNotes] = useState<Note[]>(() => initialNotes);
+    const notesRef = useRef(notes);
 
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
-        if (isPinching) {
-            if (draggingId) {
-                // Continue dragging
-                setNotes(prev => prev.map(n =>
-                    n.id === draggingId
-                        ? { ...n, x: cursorX - offset.x, y: cursorY - offset.y }
-                        : n
-                ));
-            } else {
-                // Try to start dragging
-                // Find note under cursor
-                const target = notes.find(n =>
-                    cursorX >= n.x && cursorX <= n.x + 200 && // 200 is width
-                    cursorY >= n.y && cursorY <= n.y + 150    // 150 is height
-                );
+        notesRef.current = notes;
+    }, [notes]);
 
-                if (target) {
-                    setDraggingId(target.id);
-                    setOffset({ x: cursorX - target.x, y: cursorY - target.y });
-                }
-            }
-        } else {
-            // Release
+    useEffect(() => {
+        if (!isPinching) {
             setDraggingId(null);
+            return;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cursorX, cursorY, isPinching, draggingId]); // Add notes to deps if strict, but 'notes' in find logic might be stale. 
-    // Better approach: use ref for notes or careful dependency management. 
-    // For simplicity v1: we rely on fast refreshes or let's fix dependency.
 
-    // Actually, 'notes' dependency might cause jitter if we update notes while checking. 
-    // Let's leave as is for V1 demo simplicity.
+        if (draggingId) {
+            setNotes(prev =>
+                prev.map(n => {
+                    if (n.id !== draggingId) return n;
+                    const nextX = clamp(cursorX - offset.x, 16, Math.max(16, width - NOTE_WIDTH - 16));
+                    const nextY = clamp(cursorY - offset.y, 16, Math.max(16, height - NOTE_HEIGHT - 16));
+                    return { ...n, x: nextX, y: nextY };
+                })
+            );
+            return;
+        }
+
+        const target = notesRef.current.find(n =>
+            cursorX >= n.x &&
+            cursorX <= n.x + NOTE_WIDTH &&
+            cursorY >= n.y &&
+            cursorY <= n.y + NOTE_HEIGHT
+        );
+
+        if (target) {
+            setDraggingId(target.id);
+            setOffset({ x: cursorX - target.x, y: cursorY - target.y });
+        }
+    }, [cursorX, cursorY, isPinching, draggingId, offset.x, offset.y, width, height]);
+
+    useEffect(() => {
+        setNotes(initialNotes);
+        setDraggingId(null);
+        setOffset({ x: 0, y: 0 });
+    }, [resetSignal]);
 
     return (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
@@ -68,8 +86,8 @@ export function NotesBoard({ cursorX, cursorY, isPinching }: Props) {
                         position: 'absolute',
                         left: note.x,
                         top: note.y,
-                        width: 200,
-                        height: 150,
+                        width: NOTE_WIDTH,
+                        height: NOTE_HEIGHT,
                         backgroundColor: note.color,
                         color: '#1e293b',
                         padding: '1rem',
