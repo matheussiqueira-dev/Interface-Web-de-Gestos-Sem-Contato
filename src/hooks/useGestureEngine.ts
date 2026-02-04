@@ -1,7 +1,7 @@
 // src/hooks/useGestureEngine.ts
 import { useEffect, useState, useRef } from "react";
-import { detectPinch, detectFist } from "../utils/gestures";
-import { landmarkToScreen, lerp } from "../utils/geometry";
+import { detectPinch, detectFist, getHandScale } from "../utils/gestures";
+import { clamp, landmarkToScreen, lerp } from "../utils/geometry";
 import type { HandLandmark } from "../types/hand";
 
 interface GestureState {
@@ -12,65 +12,116 @@ interface GestureState {
     handDetected: boolean;
 }
 
-const SMOOTH_FACTOR = 0.12;
-const START_PINCH = 0.05;
-const STOP_PINCH = 0.085;
+const MIN_SMOOTH = 0.08;
+const MAX_SMOOTH = 0.32;
+const SPEED_NORMALIZER = 120;
+
+const START_PINCH_ABS = 0.05;
+const STOP_PINCH_ABS = 0.085;
+const START_PINCH_RATIO = 0.3;
+const STOP_PINCH_RATIO = 0.4;
+const MIN_PINCH_ABS = 0.025;
+const MAX_PINCH_ABS = 0.12;
+
+const EMIT_INTERVAL_MS = 1000 / 60;
+const MOVEMENT_EPSILON = 0.2;
 
 export function useGestureEngine(
     landmarks: HandLandmark[] | null,
     viewportWidth: number,
     viewportHeight: number
 ): GestureState {
-    const [state, setState] = useState<GestureState>({
+    const initialState = {
         cursorX: viewportWidth / 2,
         cursorY: viewportHeight / 2,
         isPinching: false,
         isFist: false,
         handDetected: false,
-    });
+    };
+    const [state, setState] = useState<GestureState>(initialState);
 
     // Smoothing refs
-    const prevX = useRef(viewportWidth / 2);
-    const prevY = useRef(viewportHeight / 2);
+    const prevX = useRef(initialState.cursorX);
+    const prevY = useRef(initialState.cursorY);
     const pinchRef = useRef(false);
+    const lastEmitRef = useRef<GestureState>(initialState);
+    const lastEmitTimeRef = useRef(0);
+
+    useEffect(() => {
+        const clampedX = clamp(prevX.current, 0, viewportWidth);
+        const clampedY = clamp(prevY.current, 0, viewportHeight);
+        prevX.current = clampedX;
+        prevY.current = clampedY;
+
+        setState(prev => {
+            if (prev.cursorX === clampedX && prev.cursorY === clampedY) return prev;
+            const next = { ...prev, cursorX: clampedX, cursorY: clampedY };
+            lastEmitRef.current = { ...lastEmitRef.current, cursorX: clampedX, cursorY: clampedY };
+            return next;
+        });
+    }, [viewportWidth, viewportHeight]);
 
     useEffect(() => {
         if (!landmarks || landmarks.length < 9) {
-            setState(prev => {
-                if (!prev.handDetected && !prev.isPinching && !prev.isFist) return prev;
-                return { ...prev, isPinching: false, isFist: false, handDetected: false };
-            });
+            const last = lastEmitRef.current;
+            if (!last.handDetected && !last.isPinching && !last.isFist) return;
+            const next = { ...last, isPinching: false, isFist: false, handDetected: false };
+            lastEmitRef.current = next;
+            setState(prev => (prev.handDetected || prev.isPinching || prev.isFist ? next : prev));
             return;
         }
 
         // Index tip for cursor
         const indexTip = landmarks[8];
         const rawPos = landmarkToScreen(indexTip, viewportWidth, viewportHeight);
+        const clampedPos = {
+            x: clamp(rawPos.x, 0, viewportWidth),
+            y: clamp(rawPos.y, 0, viewportHeight),
+        };
+        const speed = Math.hypot(clampedPos.x - prevX.current, clampedPos.y - prevY.current);
+        const smoothFactor = clamp(speed / SPEED_NORMALIZER, MIN_SMOOTH, MAX_SMOOTH);
 
-        // Simple smoothing (LERP)
-        // Lower factor = smoother but more lag. 0.1 is a good balance for drawing.
-        const smoothX = lerp(prevX.current, rawPos.x, SMOOTH_FACTOR);
-        const smoothY = lerp(prevY.current, rawPos.y, SMOOTH_FACTOR);
+        // Adaptive smoothing: stable when slow, responsive when fast.
+        const smoothX = lerp(prevX.current, clampedPos.x, smoothFactor);
+        const smoothY = lerp(prevY.current, clampedPos.y, smoothFactor);
 
         prevX.current = smoothX;
         prevY.current = smoothY;
 
         // Hysteresis for stable pinching
         // Harder to start (0.04), harder to lose (0.08)
-        const currentThreshold = pinchRef.current ? STOP_PINCH : START_PINCH;
+        const handScale = getHandScale(landmarks);
+        const ratioThreshold = (pinchRef.current ? STOP_PINCH_RATIO : START_PINCH_RATIO) * handScale;
+        const fallbackThreshold = pinchRef.current ? STOP_PINCH_ABS : START_PINCH_ABS;
+        const currentThreshold = handScale
+            ? clamp(ratioThreshold, MIN_PINCH_ABS, MAX_PINCH_ABS)
+            : fallbackThreshold;
 
         const pinching = detectPinch(landmarks, currentThreshold);
         const fist = detectFist(landmarks);
 
         pinchRef.current = pinching;
-
-        setState({
+        const next = {
             cursorX: smoothX,
             cursorY: smoothY,
             isPinching: pinching,
             isFist: fist,
             handDetected: true,
-        });
+        };
+
+        const last = lastEmitRef.current;
+        const moved = Math.hypot(next.cursorX - last.cursorX, next.cursorY - last.cursorY);
+        const stateChanged =
+            next.isPinching !== last.isPinching ||
+            next.isFist !== last.isFist ||
+            !last.handDetected;
+        const now = performance.now();
+
+        if (stateChanged || (moved > MOVEMENT_EPSILON && now - lastEmitTimeRef.current >= EMIT_INTERVAL_MS)) {
+            lastEmitRef.current = next;
+            lastEmitTimeRef.current = now;
+            setState(next);
+        }
     }, [landmarks, viewportWidth, viewportHeight]);
 
     return state;

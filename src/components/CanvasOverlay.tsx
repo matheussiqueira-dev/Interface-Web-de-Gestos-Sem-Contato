@@ -1,5 +1,5 @@
-// src/components/CanvasOverlay.tsx
 import { useEffect, useRef } from "react";
+import { Cursor } from "./ui/Cursor";
 
 interface Props {
     cursorX: number;
@@ -45,6 +45,8 @@ export function CanvasOverlay({
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
         ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 6; // Thicker lines
         contextRef.current = ctx;
     }, [width, height, dpr]);
 
@@ -60,25 +62,28 @@ export function CanvasOverlay({
         const ctx = contextRef.current;
         if (!ctx) return;
 
-        if (!handDetected) {
+        if (!handDetected || !drawingEnabled) {
             lastPos.current = null;
             return;
         }
 
-        if (isPinching && drawingEnabled) {
+        if (isPinching) {
             if (lastPos.current) {
-                // Draw line
+                // Glow effect for the line
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = color;
+
                 ctx.beginPath();
                 ctx.moveTo(lastPos.current.x, lastPos.current.y);
                 ctx.lineTo(cursorX, cursorY);
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 4;
-                ctx.lineCap = 'round';
                 ctx.stroke();
+
+                // Clear shadow for next frame or other drawings
+                ctx.shadowBlur = 0;
             }
             lastPos.current = { x: cursorX, y: cursorY };
         } else {
-            // Lift pen
             lastPos.current = null;
         }
 
@@ -92,23 +97,13 @@ export function CanvasOverlay({
                 style={{ position: 'absolute', inset: 0 }}
             />
 
-            {/* Cursor */}
-            <div
-                style={{
-                    position: "absolute",
-                    transform: `translate3d(${cursorX}px, ${cursorY}px, 0)`,
-                    left: -12, // Center cursor (24px width)
-                    top: -12,
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    border: `2px solid ${isPinching ? color : 'white'}`,
-                    backgroundColor: isPinching ? 'rgba(255,255,255,0.3)' : 'transparent',
-                    boxShadow: "0 0 10px rgba(0,0,0,0.5)",
-                    transition: "transform 0.05s linear",
-                    opacity: handDetected ? 1 : 0,
-                    zIndex: 100, // Always on top
-                }}
+            {/* Premium Cursor */}
+            <Cursor
+                x={cursorX}
+                y={cursorY}
+                isPinching={isPinching}
+                handDetected={handDetected}
+                color={color}
             />
         </div>
     );

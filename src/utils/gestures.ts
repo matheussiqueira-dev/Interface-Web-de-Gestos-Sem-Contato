@@ -7,6 +7,15 @@ function distance(a: HandLandmark, b: HandLandmark) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
+export function getHandScale(landmarks: HandLandmark[]): number {
+    if (!landmarks || landmarks.length < 21) return 0;
+
+    const palmWidth = distance(landmarks[5], landmarks[17]);
+    const palmLength = distance(landmarks[0], landmarks[9]);
+
+    return Math.max(palmWidth, palmLength);
+}
+
 // Thumb Tip: 4, Index Tip: 8
 export function detectPinch(landmarks: HandLandmark[], threshold = 0.05): boolean {
     if (!landmarks || landmarks.length < 21) return false;

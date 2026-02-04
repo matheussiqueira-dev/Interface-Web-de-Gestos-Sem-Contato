@@ -1,91 +1,120 @@
-# Touchless Web Gesture Interface
+# ✨ Touchless Web Gesture Interface
 
-## Visão Geral
+![Touchless Interface Banner](https://img.shields.io/badge/Status-Premium_Refactor-blueviolet?style=for-the-badge)
+![React](https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![MediaPipe](https://img.shields.io/badge/MediaPipe-0078D7?style=for-the-badge&logo=google&logoColor=white)
+![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)
 
-Touchless Web Gesture Interface é uma aplicação web que permite aos usuários interagir com elementos digitais utilizando gestos manuais capturados através de uma webcam padrão. Aproveitando a tecnologia de visão computacional, especificamente o MediaPipe Hands, a aplicação rastreia pontos de referência da mão em tempo real para controlar um cursor virtual, realizar ações de clique, arrastar elementos e desenhar em uma tela virtual sem qualquer contato físico com dispositivos de entrada.
+## 📖 Visão Geral
 
-## Funcionalidades
+O **Touchless Web Gesture Interface** é uma aplicação de ponta que redefine a interação homem-máquina. Utilizando visão computacional avançada através do **MediaPipe**, esta interface permite o controle total de elementos digitais sem a necessidade de contato físico, transformando qualquer webcam padrão em um sensor de movimento de alta precisão.
 
-- **Rastreamento de Mão em Tempo Real**: Utiliza o MediaPipe para detecção de mãos e rastreamento de pontos de referência de alta performance diretamente no navegador.
-- **Cursor Virtual**: Mapeia a posição do dedo indicador do usuário para um cursor na tela com suavização para precisão.
-- **Reconhecimento de Gestos**:
-    - **Interação de Pinça**: Detecta o movimento de pinça entre o polegar e o dedo indicador para simular cliques e operações de arrastar.
-    - **Detecção de Punho**: Identifica o gesto de punho fechado, utilizado para mudanças de estado ou alternância de ferramentas.
-- **Quadro Interativo**:
-    - **Notas Adesivas**: Usuários podem pegar e mover notas adesivas virtuais usando o gesto de pinça.
-    - **Tela de Desenho**: Capacidades de desenho livre ativadas por gestos.
-- **Painel de Status**: Exibe câmera, carregamento do modelo e detecção de mão em tempo real.
-- **Controles Avançados**: Limpeza do quadro sem recarregar e pausa do rastreamento.
-- **Arquitetura Moderna**: Construído com React, TypeScript e Vite para performance e manutenibilidade.
+Esta versão passou por um refactoring completo focado em **performance senior**, **UI/UX premium** e uma arquitetura robusta e escalável.
 
-## Stack Tecnológico
+---
 
-- **Framework Frontend**: React 18
-- **Linguagem**: TypeScript
-- **Ferramenta de Build**: Vite
-- **Visão Computacional**: Google MediaPipe Tasks Vision
-- **Estilização**: CSS Modules / Variáveis CSS Customizadas (Sistema de design Glassmorphism)
+## 🚀 Funcionalidades Principais
 
-## Pré-requisitos
+### 🖐️ Rastreamento de Mão em Ultra Performance
+- Detecção em tempo real com baixa latência utilizando **MediaPipe Tasks Vision**.
+- Suavização adaptativa para eliminar jitter e garantir precisão cirúrgica.
 
-- Node.js (Versão 16 ou superior recomendada)
-- Gerenciador de pacotes NPM/TPM
-- Um computador com uma webcam funcional
+### 🎭 Reconhecimento de Gestos Inteligente
+- **Gesto de Pinça (Pinch)**: Seleção natural, arraste de elementos e desenho fluido.
+- **Detecção de Punho (Fist)**: Comando universal para pausa e segurança de estado.
+- **Mapeamento Dinâmico**: Calibração automática baseada na distância da palma para estabilidade em qualquer ambiente.
 
-## Instalação
+### 🍱 Interface de Usuário (UI) Senior
+- **Layout "Control Center"**: Design moderno com hierarquia visual clara e foco no conteúdo.
+- **Glassmorphism 2.0**: Efeitos de desfoque e transparência refinados com bordas submilimétricas.
+- **Micro-interações Premium**: Feedback visual imediato através de um sistema de partículas e animações via **Framer Motion**.
 
-1. Clone o repositório:
+### 🎨 Quadro Interativo 3.0
+- **Notas Adesivas Inteligentes**: Gerenciamento de elementos via gestos com física suave.
+- **Canvas com Brilho Neon**: Desenho livre com efeitos de rastro e glow dinâmico.
+- **Sistema de Partículas**: Feedback imersivo que acompanha o movimento do usuário.
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+- **Frontend**: [React 18](https://reactjs.org/)
+- **Linguagem**: [TypeScript](https://www.typescriptlang.org/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Visão Computacional**: [MediaPipe Hands](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker)
+- **Animações**: [Framer Motion](https://www.framer.com/motion/)
+- **Iconografia**: [Lucide React](https://lucide.dev/)
+- **Estilização**: CSS Moderno (Custom Properties & Glassmorphism)
+
+---
+
+## 📦 Estrutura do Projeto
+
+```text
+src/
+├── components/
+│   ├── ui/               # Componentes atômicos (Button, Status, Cursor)
+│   ├── CanvasOverlay     # Camada de desenho e cursor
+│   ├── NotesBoard        # Quadro de notas interativas
+│   ├── ParticleSystem    # Efeitos visuais de feedback
+│   └── VideoFeed         # Gerenciamento de stream de vídeo
+├── hooks/
+│   ├── useHandTracking   # Bridge com MediaPipe
+│   ├── useGestureEngine  # Lógica de interpretação de gestos
+│   └── useViewportSize   # Responsividade dinâmica
+├── utils/
+│   ├── geometry          # Cálculos matemáticos e clamp
+│   └── gestures          # heurísticas de detecção
+├── App.tsx               # Orquestração principal
+└── index.css             # Design System e tokens
+```
+
+---
+
+## 🔧 Instalação e Uso
+
+1. **Clonar o Repositório**
    ```bash
    git clone https://github.com/matheussiqueirahub/touchless-web-gesture-interface.git
    ```
 
-2. Navegue até o diretório do projeto:
-   ```bash
-   cd touchless-web-gesture-interface
-   ```
-
-3. Instale as dependências:
+2. **Instalar Dependências**
    ```bash
    npm install
    ```
 
-## Uso
-
-1. Inicie o servidor de desenvolvimento:
+3. **Executar em Desenvolvimento**
    ```bash
    npm run dev
    ```
 
-2. Abra seu navegador e navegue para a URL local fornecida (geralmente `http://localhost:5173`).
+4. **Acessar a Aplicação**
+   Abra `http://localhost:5173` e permita o acesso à câmera.
 
-3. Conceda permissões de câmera quando solicitado pelo navegador.
+---
 
-4. **Guia de Interação**:
-    - **Mover Cursor**: Mova sua mão na frente da câmera. O cursor segue seu dedo indicador.
-    - **Clicar / Arrastar**: Faça o movimento de pinça (junte polegar e indicador).
-    - **Desenhar**: Faça o movimento de pinça e mova a mão em uma área vazia.
-    - **Parar de Desenhar**: Abra a mão (solte a pinça) ou feche o punho para parar a ação.
+## 💡 Guia de Uso
 
-## Estrutura do Projeto
+- **Mover**: O cursor seguirá seu dedo indicador.
+- **Selecionar/Desenhar**: Junte o polegar e o indicador (gesto de pinça).
+- **Soltar**: Afaste os dedos.
+- **Pausar**: Feche o punho.
 
-```
-src/
-├── components/         # Componentes React (VideoFeed, CanvasOverlay, NotesBoard)
-├── context/           # Gerenciamento de estado global
-├── hooks/             # Hooks customizados (useHandTracking, useGestureEngine)
-├── utils/             # Funções auxiliares (geometria, lógica de gestos)
-├── App.tsx            # Componente principal da aplicação
-└── main.tsx           # Ponto de entrada
-```
+---
 
-## Contribuição
+## 🛣️ Futuras Melhorias
 
-1. Faça um Fork do projeto.
-2. Crie sua branch de funcionalidade (`git checkout -b feature/FuncionalidadeIncrivel`).
-3. Comite suas mudanças (`git commit -m 'Adiciona alguma FuncionalidadeIncrivel'`).
-4. Dê um Push para a branch (`git push origin feature/FuncionalidadeIncrivel`).
-5. Abra um Pull Request.
+- [ ] Support para gestos multi-manuais.
+- [ ] Integração com APIs de apresentação (Google Slides/PowerPoint).
+- [ ] Calibração personalizada de sensibilidade via UI.
+- [ ] Modo de alta performance para dispositivos móveis.
 
-## Licença
+---
 
-Este projeto é distribuído sob a Licença MIT. Veja `LICENSE` para mais informações.
+### Autoria
+**Matheus Siqueira**  
+Website: [matheussiqueira.dev](https://www.matheussiqueira.dev/)  
+LinkedIn: [linkedin.com/in/matheussiqueira](https://www.linkedin.com/in/matheussiqueira/)
+
+---
+*Este projeto foi desenvolvido com foco em excelência técnica e usabilidade futurista.*

@@ -1,5 +1,5 @@
-// src/components/NotesBoard.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { clamp } from "../utils/geometry";
 
 interface Note {
@@ -19,13 +19,13 @@ interface Props {
     resetSignal: number;
 }
 
-const NOTE_WIDTH = 220;
-const NOTE_HEIGHT = 160;
+const NOTE_WIDTH = 240;
+const NOTE_HEIGHT = 180;
 
 const initialNotes: Note[] = [
-    { id: "1", x: 120, y: 120, text: '👋 Olá! Use "Pinça" para arrastar', color: "#fef3c7" },
-    { id: "2", x: 420, y: 220, text: "🎨 Desenhe no vazio", color: "#dcfce7" },
-    { id: "3", x: 220, y: 420, text: "✊ Feche o punho para pausar o traço", color: "#e0f2fe" },
+    { id: "1", x: 120, y: 150, text: '👋 Olá! Use "Pinça" para arrastar esta nota', color: "#fef3c7" },
+    { id: "2", x: 450, y: 250, text: "🎨 Desenhe no quadro fazendo o gesto de pinça no vazio", color: "#dcfce7" },
+    { id: "3", x: 250, y: 450, text: "✊ Feche o punho para pausar o rastreamento", color: "#e0f2fe" },
 ];
 
 export function NotesBoard({ cursorX, cursorY, isPinching, width, height, resetSignal }: Props) {
@@ -34,6 +34,11 @@ export function NotesBoard({ cursorX, cursorY, isPinching, width, height, resetS
 
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+    const bounds = useMemo(() => ({
+        maxX: Math.max(32, width - NOTE_WIDTH - 32),
+        maxY: Math.max(32, height - NOTE_HEIGHT - 32),
+    }), [width, height]);
 
     useEffect(() => {
         notesRef.current = notes;
@@ -46,14 +51,18 @@ export function NotesBoard({ cursorX, cursorY, isPinching, width, height, resetS
         }
 
         if (draggingId) {
-            setNotes(prev =>
-                prev.map(n => {
+            setNotes(prev => {
+                let changed = false;
+                const next = prev.map(n => {
                     if (n.id !== draggingId) return n;
-                    const nextX = clamp(cursorX - offset.x, 16, Math.max(16, width - NOTE_WIDTH - 16));
-                    const nextY = clamp(cursorY - offset.y, 16, Math.max(16, height - NOTE_HEIGHT - 16));
+                    const nextX = clamp(cursorX - offset.x, 32, bounds.maxX);
+                    const nextY = clamp(cursorY - offset.y, 32, bounds.maxY);
+                    if (Math.abs(nextX - n.x) < 0.5 && Math.abs(nextY - n.y) < 0.5) return n;
+                    changed = true;
                     return { ...n, x: nextX, y: nextY };
-                })
-            );
+                });
+                return changed ? next : prev;
+            });
             return;
         }
 
@@ -68,42 +77,51 @@ export function NotesBoard({ cursorX, cursorY, isPinching, width, height, resetS
             setDraggingId(target.id);
             setOffset({ x: cursorX - target.x, y: cursorY - target.y });
         }
-    }, [cursorX, cursorY, isPinching, draggingId, offset.x, offset.y, width, height]);
+    }, [cursorX, cursorY, isPinching, draggingId, offset.x, offset.y, bounds.maxX, bounds.maxY]);
 
     useEffect(() => {
         setNotes(initialNotes);
         setDraggingId(null);
-        setOffset({ x: 0, y: 0 });
     }, [resetSignal]);
 
     return (
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-            {notes.map(note => (
-                <div
-                    key={note.id}
-                    className="glass-panel"
-                    style={{
-                        position: 'absolute',
-                        left: note.x,
-                        top: note.y,
-                        width: NOTE_WIDTH,
-                        height: NOTE_HEIGHT,
-                        backgroundColor: note.color,
-                        color: '#1e293b',
-                        padding: '1rem',
-                        boxShadow: draggingId === note.id ? '0 20px 25px -5px rgba(0,0,0,0.2)' : undefined,
-                        transform: draggingId === note.id ? 'scale(1.05)' : 'scale(1)',
-                        transition: 'box-shadow 0.2s, transform 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    {note.text}
-                </div>
-            ))}
+        <div className="notes-board">
+            <AnimatePresence>
+                {notes.map(note => (
+                    <motion.div
+                        key={note.id}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{
+                            opacity: 1,
+                            scale: draggingId === note.id ? 1.05 : 1,
+                            x: note.x,
+                            y: note.y,
+                            boxShadow: draggingId === note.id
+                                ? "0 30px 60px -12px rgba(0,0,0,0.3)"
+                                : "0 10px 20px -10px rgba(0,0,0,0.1)"
+                        }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 30,
+                            x: { duration: 0.05 },
+                            y: { duration: 0.05 }
+                        }}
+                        className="note-card glass"
+                        style={{
+                            backgroundColor: note.color,
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            pointerEvents: 'auto'
+                        }}
+                    >
+                        <div style={{ color: '#0f172a', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                            {note.text}
+                        </div>
+                    </motion.div>
+                ))}
+            </AnimatePresence>
         </div>
     );
 }
