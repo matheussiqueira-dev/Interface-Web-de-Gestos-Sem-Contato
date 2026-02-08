@@ -9,7 +9,19 @@ interface LoadResult {
 }
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
+const API_TOKEN = import.meta.env.VITE_API_TOKEN ?? "";
 const LOCAL_STORAGE_KEY = "touchless_workspace_v2";
+
+function withAuthHeader(initHeaders: HeadersInit = {}): HeadersInit {
+  if (!API_TOKEN) {
+    return initHeaders;
+  }
+
+  return {
+    ...initHeaders,
+    "x-api-token": API_TOKEN,
+  };
+}
 
 function getApiUrl(path: string): string {
   return `${API_BASE_URL}${path}`;
@@ -43,6 +55,7 @@ export async function loadWorkspaceSnapshot(): Promise<LoadResult> {
     const response = await fetch(getApiUrl("/api/v1/workspace"), {
       method: "GET",
       headers: {
+        ...withAuthHeader(),
         Accept: "application/json",
       },
     });
@@ -75,6 +88,7 @@ export async function saveWorkspaceSnapshot(
     const response = await fetch(getApiUrl("/api/v1/workspace"), {
       method: "PUT",
       headers: {
+        ...withAuthHeader(),
         "Content-Type": "application/json",
         Accept: "application/json",
       },
@@ -104,6 +118,7 @@ export async function trackWorkspaceEvent(
     await fetch(getApiUrl("/api/v1/events"), {
       method: "POST",
       headers: {
+        ...withAuthHeader(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

@@ -19,7 +19,7 @@ function sanitizePayload(payload) {
   );
 }
 
-export function createApp({ store, clientOrigin }) {
+export function createApp({ store, clientOrigin, apiToken }) {
   const app = express();
   const allowedOrigins = new Set([
     clientOrigin,
@@ -59,6 +59,24 @@ export function createApp({ store, clientOrigin }) {
   app.use(express.json({ limit: "200kb" }));
   app.use(createRequestLogger());
 
+  function requireApiToken(req, res, next) {
+    if (!apiToken) {
+      next();
+      return;
+    }
+
+    const requestToken = req.header("x-api-token");
+    if (requestToken !== apiToken) {
+      res.status(401).json({
+        error: "unauthorized",
+        message: "Token de autenticacao invalido",
+      });
+      return;
+    }
+
+    next();
+  }
+
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",
@@ -77,7 +95,7 @@ export function createApp({ store, clientOrigin }) {
     }
   });
 
-  app.put("/api/v1/workspace", async (req, res, next) => {
+  app.put("/api/v1/workspace", requireApiToken, async (req, res, next) => {
     try {
       const workspace = workspaceSchema.parse(req.body);
       const persisted = await store.writeWorkspace({
@@ -90,7 +108,7 @@ export function createApp({ store, clientOrigin }) {
     }
   });
 
-  app.patch("/api/v1/settings", async (req, res, next) => {
+  app.patch("/api/v1/settings", requireApiToken, async (req, res, next) => {
     try {
       const settingsPatch = settingsSchema.partial().parse(req.body);
       const currentWorkspace = await store.readWorkspace();
@@ -110,7 +128,7 @@ export function createApp({ store, clientOrigin }) {
     }
   });
 
-  app.post("/api/v1/events", (req, res, next) => {
+  app.post("/api/v1/events", requireApiToken, (req, res, next) => {
     try {
       const event = eventSchema.parse(req.body);
       const payload = sanitizePayload(event.payload);
@@ -125,7 +143,7 @@ export function createApp({ store, clientOrigin }) {
     }
   });
 
-  app.post("/api/v1/workspace/reset", async (_req, res, next) => {
+  app.post("/api/v1/workspace/reset", requireApiToken, async (_req, res, next) => {
     try {
       const resetWorkspace = {
         ...createDefaultWorkspace(),

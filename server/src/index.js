@@ -3,7 +3,11 @@ import { createApp } from "./app.js";
 import { createWorkspaceStore } from "./storage.js";
 
 const store = createWorkspaceStore(config.dataFilePath);
-const app = createApp({ store, clientOrigin: config.clientOrigin });
+const app = createApp({
+  store,
+  clientOrigin: config.clientOrigin,
+  apiToken: config.apiToken,
+});
 
 const server = app.listen(config.port, () => {
   console.info(`[api] running on http://localhost:${config.port}`);

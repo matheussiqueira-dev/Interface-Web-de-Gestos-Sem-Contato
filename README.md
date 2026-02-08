@@ -189,8 +189,10 @@ Use `.env.example` como base:
 
 - `PORT`: porta da API;
 - `CLIENT_ORIGIN`: origem autorizada para CORS;
+- `API_TOKEN`: token opcional para proteger endpoints de escrita da API;
 - `DATA_FILE_PATH`: caminho do arquivo de persistencia;
 - `VITE_API_BASE_URL`: base URL da API no frontend (opcional com proxy local);
+- `VITE_API_TOKEN`: token opcional enviado no header `x-api-token`;
 - `VITE_DEV_API_TARGET`: target do proxy Vite em desenvolvimento.
 
 ## Deploy
