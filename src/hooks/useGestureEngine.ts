@@ -12,6 +12,11 @@ interface GestureState {
     handDetected: boolean;
 }
 
+interface GestureEngineOptions {
+    pinchSensitivity?: number;
+    cursorResponsiveness?: number;
+}
+
 const MIN_SMOOTH = 0.08;
 const MAX_SMOOTH = 0.32;
 const SPEED_NORMALIZER = 120;
@@ -29,7 +34,8 @@ const MOVEMENT_EPSILON = 0.2;
 export function useGestureEngine(
     landmarks: HandLandmark[] | null,
     viewportWidth: number,
-    viewportHeight: number
+    viewportHeight: number,
+    options: GestureEngineOptions = {}
 ): GestureState {
     const initialState = {
         cursorX: viewportWidth / 2,
@@ -78,8 +84,9 @@ export function useGestureEngine(
             x: clamp(rawPos.x, 0, viewportWidth),
             y: clamp(rawPos.y, 0, viewportHeight),
         };
+        const responsiveness = clamp(options.cursorResponsiveness ?? 1, 0.6, 1.7);
         const speed = Math.hypot(clampedPos.x - prevX.current, clampedPos.y - prevY.current);
-        const smoothFactor = clamp(speed / SPEED_NORMALIZER, MIN_SMOOTH, MAX_SMOOTH);
+        const smoothFactor = clamp((speed / SPEED_NORMALIZER) * responsiveness, MIN_SMOOTH, MAX_SMOOTH);
 
         // Adaptive smoothing: stable when slow, responsive when fast.
         const smoothX = lerp(prevX.current, clampedPos.x, smoothFactor);
@@ -97,7 +104,9 @@ export function useGestureEngine(
             ? clamp(ratioThreshold, MIN_PINCH_ABS, MAX_PINCH_ABS)
             : fallbackThreshold;
 
-        const pinching = detectPinch(landmarks, currentThreshold);
+        const sensitivity = clamp(options.pinchSensitivity ?? 1, 0.6, 1.7);
+        const adjustedThreshold = clamp(currentThreshold * sensitivity, MIN_PINCH_ABS, MAX_PINCH_ABS);
+        const pinching = detectPinch(landmarks, adjustedThreshold);
         const fist = detectFist(landmarks);
 
         pinchRef.current = pinching;
@@ -122,7 +131,13 @@ export function useGestureEngine(
             lastEmitTimeRef.current = now;
             setState(next);
         }
-    }, [landmarks, viewportWidth, viewportHeight]);
+    }, [
+        landmarks,
+        options.cursorResponsiveness,
+        options.pinchSensitivity,
+        viewportWidth,
+        viewportHeight,
+    ]);
 
     return state;
 }

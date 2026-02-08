@@ -1,89 +1,109 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 interface Particle {
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    life: number;
-    color: string;
-    size: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  size: number;
+  color: string;
 }
 
-interface Props {
-    x: number;
-    y: number;
-    isPinching: boolean;
-    color: string;
-    width: number;
-    height: number;
+interface ParticleSystemProps {
+  x: number;
+  y: number;
+  isPinching: boolean;
+  color: string;
+  width: number;
+  height: number;
+  enabled: boolean;
 }
 
-export const ParticleSystem: React.FC<Props> = ({ x, y, isPinching, color, width, height }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const particles = useRef<Particle[]>([]);
+export function ParticleSystem({
+  x,
+  y,
+  isPinching,
+  color,
+  width,
+  height,
+  enabled,
+}: ParticleSystemProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const particlesRef = useRef<Particle[]>([]);
+  const cursorRef = useRef({ x, y, isPinching, color });
+  const sizeRef = useRef({ width, height });
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+  useEffect(() => {
+    cursorRef.current = { x, y, isPinching, color };
+  }, [x, y, isPinching, color]);
 
-        let animationFrameId: number;
+  useEffect(() => {
+    sizeRef.current = { width, height };
+  }, [width, height]);
 
-        const render = () => {
-            ctx.clearRect(0, 0, width, height);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-            if (isPinching) {
-                // Create new particles
-                for (let i = 0; i < 2; i++) {
-                    particles.current.push({
-                        x,
-                        y,
-                        vx: (Math.random() - 0.5) * 2,
-                        vy: (Math.random() - 0.5) * 2,
-                        life: 1.0,
-                        color,
-                        size: Math.random() * 3 + 1,
-                    });
-                }
-            }
+    const context = canvas.getContext("2d");
+    if (!context) return;
 
-            // Update and draw particles
-            particles.current = particles.current.filter(p => p.life > 0);
+    let animationFrameId = 0;
 
-            particles.current.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life -= 0.02;
+    const render = () => {
+      const { width: currentWidth, height: currentHeight } = sizeRef.current;
+      context.clearRect(0, 0, currentWidth, currentHeight);
 
-                ctx.globalAlpha = p.life;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.fill();
-            });
+      if (enabled && cursorRef.current.isPinching) {
+        for (let index = 0; index < 2; index += 1) {
+          particlesRef.current.push({
+            x: cursorRef.current.x,
+            y: cursorRef.current.y,
+            vx: (Math.random() - 0.5) * 2.1,
+            vy: (Math.random() - 0.5) * 2.1,
+            life: 1,
+            size: Math.random() * 2.7 + 0.9,
+            color: cursorRef.current.color,
+          });
+        }
+      }
 
-            animationFrameId = requestAnimationFrame(render);
-        };
+      particlesRef.current = particlesRef.current
+        .filter((particle) => particle.life > 0)
+        .slice(-220);
 
-        render();
+      particlesRef.current.forEach((particle) => {
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.life -= 0.028;
+        particle.size *= 0.994;
 
-        return () => cancelAnimationFrame(animationFrameId);
-    }, [x, y, isPinching, color, width, height]);
+        context.globalAlpha = Math.max(0, particle.life);
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        context.fillStyle = particle.color;
+        context.fill();
+      });
 
-    return (
-        <canvas
-            ref={canvasRef}
-            width={width}
-            height={height}
-            style={{
-                position: 'fixed',
-                inset: 0,
-                pointerEvents: 'none',
-                zIndex: 45,
-                opacity: 0.6,
-            }}
-        />
-    );
-};
+      context.globalAlpha = 1;
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    animationFrameId = requestAnimationFrame(render);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [enabled]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={width}
+      height={height}
+      className="particle-layer"
+      aria-hidden="true"
+    />
+  );
+}

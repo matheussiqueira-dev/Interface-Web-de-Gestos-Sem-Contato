@@ -1,26 +1,31 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import type { ReactNode } from "react";
+import { motion } from "framer-motion";
+
+type StatusTone = "success" | "warning" | "danger" | "neutral";
 
 interface StatusPillProps {
   label: string;
   value: string;
-  tone: 'success' | 'warning' | 'danger' | 'neutral';
+  tone: StatusTone;
+  icon?: ReactNode;
 }
 
-export const StatusPill: React.FC<StatusPillProps> = ({ label, value, tone }) => {
-  const dotClass = `dot dot-${tone === 'success' ? 'active' : tone === 'neutral' ? 'inactive' : tone}`;
+export function StatusPill({ label, value, tone, icon }: StatusPillProps) {
+  const dotClassName = `dot dot-${tone === "success" ? "active" : tone}`;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="glass status-pill"
+    <motion.div
+      className="status-pill glass"
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      aria-live="polite"
     >
-      <div className={dotClass} />
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>{label}</span>
-        <span>{value}</span>
+      {icon ? <span className="status-icon">{icon}</span> : null}
+      <span className={dotClassName} />
+      <div className="status-pill-copy">
+        <span className="status-pill-label">{label}</span>
+        <strong>{value}</strong>
       </div>
     </motion.div>
   );
-};
+}

@@ -1,120 +1,226 @@
-# ✨ Touchless Web Gesture Interface
+# Interface Web de Gestos Sem Contato
 
-![Touchless Interface Banner](https://img.shields.io/badge/Status-Premium_Refactor-blueviolet?style=for-the-badge)
-![React](https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![MediaPipe](https://img.shields.io/badge/MediaPipe-0078D7?style=for-the-badge&logo=google&logoColor=white)
-![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)
+Aplicacao fullstack para interacao touchless com webcam, reconhecendo mao/gestos em tempo real para controlar um workspace visual com notas, desenho em canvas e feedback de particulas.
 
-## 📖 Visão Geral
+## Visao geral do produto
 
-O **Touchless Web Gesture Interface** é uma aplicação de ponta que redefine a interação homem-máquina. Utilizando visão computacional avançada através do **MediaPipe**, esta interface permite o controle total de elementos digitais sem a necessidade de contato físico, transformando qualquer webcam padrão em um sensor de movimento de alta precisão.
+O sistema transforma uma webcam comum em um dispositivo de entrada gestual para cenarios como:
 
-Esta versão passou por um refactoring completo focado em **performance senior**, **UI/UX premium** e uma arquitetura robusta e escalável.
+- quadros colaborativos sem contato fisico;
+- demonstracoes interativas;
+- experiencias hands-free em ambientes educacionais, eventos e kiosks.
 
----
+## Objetivos de negocio
 
-## 🚀 Funcionalidades Principais
+- reduzir friccao de uso em interfaces sem teclado/mouse;
+- entregar experiencia visual premium com feedback imediato;
+- permitir evolucao para produto escalavel com API versionada e persistencia confiavel.
 
-### 🖐️ Rastreamento de Mão em Ultra Performance
-- Detecção em tempo real com baixa latência utilizando **MediaPipe Tasks Vision**.
-- Suavização adaptativa para eliminar jitter e garantir precisão cirúrgica.
+## Principais melhorias implementadas
 
-### 🎭 Reconhecimento de Gestos Inteligente
-- **Gesto de Pinça (Pinch)**: Seleção natural, arraste de elementos e desenho fluido.
-- **Detecção de Punho (Fist)**: Comando universal para pausa e segurança de estado.
-- **Mapeamento Dinâmico**: Calibração automática baseada na distância da palma para estabilidade em qualquer ambiente.
+- Refatoracao para arquitetura em camadas no frontend (`domain`, `features`, `services`, `shared`, `components`, `hooks`, `utils`).
+- Inclusao de backend Express com API versionada em `/api/v1`.
+- Persistencia hibrida: API primaria + fallback para `localStorage`.
+- Rework completo de UX/UI com novo design system, hierarquia visual, painel de operacao e metricas.
+- Calibracao em tempo real de sensibilidade de pinça e responsividade de cursor.
+- Features de produto: adicionar/remover/editar notas, reset de workspace, metricas de sessao e telemetria de eventos.
+- Hardening de seguranca no backend com `helmet`, `cors`, `express-rate-limit`, validacao `zod` e tratamento global de erros.
+- Testes unitarios (utils e reducer de estado).
 
-### 🍱 Interface de Usuário (UI) Senior
-- **Layout "Control Center"**: Design moderno com hierarquia visual clara e foco no conteúdo.
-- **Glassmorphism 2.0**: Efeitos de desfoque e transparência refinados com bordas submilimétricas.
-- **Micro-interações Premium**: Feedback visual imediato através de um sistema de partículas e animações via **Framer Motion**.
+## Arquitetura e decisoes tecnicas
 
-### 🎨 Quadro Interativo 3.0
-- **Notas Adesivas Inteligentes**: Gerenciamento de elementos via gestos com física suave.
-- **Canvas com Brilho Neon**: Desenho livre com efeitos de rastro e glow dinâmico.
-- **Sistema de Partículas**: Feedback imersivo que acompanha o movimento do usuário.
+### Frontend (Vite + React + TypeScript)
 
----
+- `src/domain`: contratos de negocio (`WorkspaceSnapshot`, `WorkspaceSettings`, `WorkspaceNote`).
+- `src/features/workspace`: `workspaceReducer` centraliza estado de aplicacao.
+- `src/features/metrics`: hook de metricas de sessao em tempo real.
+- `src/services`: persistencia e telemetria desacopladas da UI.
+- `src/components`: composicao visual (video, board, canvas, particulas, UI atomica).
+- `src/hooks`: rastreamento de mao e interpretacao de gesto.
 
-## 🛠️ Tecnologias Utilizadas
+### Backend (Node + Express)
 
-- **Frontend**: [React 18](https://reactjs.org/)
-- **Linguagem**: [TypeScript](https://www.typescriptlang.org/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **Visão Computacional**: [MediaPipe Hands](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker)
-- **Animações**: [Framer Motion](https://www.framer.com/motion/)
-- **Iconografia**: [Lucide React](https://lucide.dev/)
-- **Estilização**: CSS Moderno (Custom Properties & Glassmorphism)
+- `server/src/index.js`: bootstrap e encerramento gracioso.
+- `server/src/app.js`: middlewares, rotas, seguranca e error handler.
+- `server/src/storage.js`: persistencia em arquivo JSON com fila de escrita.
+- `server/src/validators.js`: contratos de entrada com `zod`.
+- `server/data/workspace.json`: estado persistido inicial.
 
----
+### Principios aplicados
 
-## 📦 Estrutura do Projeto
+- Separacao de responsabilidades por dominio/camada.
+- Estado previsivel via reducer.
+- DRY em contratos de dados reutilizados.
+- Defensive coding: validacao de payload + fallback local.
+- Evolucao orientada a produto: observabilidade minima, API versionada, estados de persistencia na UI.
+
+## Stack e tecnologias
+
+- Frontend: React 18, TypeScript, Vite, Framer Motion, Lucide, MediaPipe Tasks Vision
+- Backend: Node.js, Express, Zod, Helmet, CORS, Rate Limit, Morgan
+- Qualidade: ESLint, Vitest, jsdom
+
+## Estrutura do projeto
 
 ```text
-src/
-├── components/
-│   ├── ui/               # Componentes atômicos (Button, Status, Cursor)
-│   ├── CanvasOverlay     # Camada de desenho e cursor
-│   ├── NotesBoard        # Quadro de notas interativas
-│   ├── ParticleSystem    # Efeitos visuais de feedback
-│   └── VideoFeed         # Gerenciamento de stream de vídeo
-├── hooks/
-│   ├── useHandTracking   # Bridge com MediaPipe
-│   ├── useGestureEngine  # Lógica de interpretação de gestos
-│   └── useViewportSize   # Responsividade dinâmica
-├── utils/
-│   ├── geometry          # Cálculos matemáticos e clamp
-│   └── gestures          # heurísticas de detecção
-├── App.tsx               # Orquestração principal
-└── index.css             # Design System e tokens
+.
+├── server/
+│   ├── data/
+│   │   └── workspace.json
+│   └── src/
+│       ├── app.js
+│       ├── config.js
+│       ├── defaults.js
+│       ├── logger.js
+│       ├── storage.js
+│       ├── validators.js
+│       └── index.js
+├── src/
+│   ├── components/
+│   ├── domain/
+│   ├── features/
+│   ├── hooks/
+│   ├── services/
+│   ├── shared/
+│   ├── utils/
+│   ├── App.tsx
+│   └── index.css
+├── package.json
+└── README.md
 ```
 
----
+## Fluxos de usuario
 
-## 🔧 Instalação e Uso
+- Navegacao por gesto: cursor acompanha o indicador.
+- Pinça: interacao principal para desenhar e arrastar notas.
+- Punho fechado: pausa operacional do tracking.
+- Painel de controle: calibracao, acao de limpeza, reset e criacao de nota.
+- Persistencia: sincroniza com API quando disponivel e usa armazenamento local como contingencia.
 
-1. **Clonar o Repositório**
-   ```bash
-   git clone https://github.com/matheussiqueirahub/touchless-web-gesture-interface.git
-   ```
+## API e contratos
 
-2. **Instalar Dependências**
-   ```bash
-   npm install
-   ```
+### Endpoints
 
-3. **Executar em Desenvolvimento**
-   ```bash
-   npm run dev
-   ```
+- `GET /api/health` status e uptime do servico.
+- `GET /api/v1/workspace` retorna snapshot completo.
+- `PUT /api/v1/workspace` atualiza snapshot completo validado.
+- `PATCH /api/v1/settings` patch de configuracoes.
+- `POST /api/v1/events` ingestao de eventos de telemetria.
+- `POST /api/v1/workspace/reset` reseta para estado padrao.
 
-4. **Acessar a Aplicação**
-   Abra `http://localhost:5173` e permita o acesso à câmera.
+### Integridade e confiabilidade
 
----
+- payloads validados em borda de entrada (`zod`);
+- limitacao de taxa para protecao de abuso;
+- CORS controlado por origem;
+- persistencia serializada para evitar corrida de escrita.
 
-## 💡 Guia de Uso
+## Seguranca
 
-- **Mover**: O cursor seguirá seu dedo indicador.
-- **Selecionar/Desenhar**: Junte o polegar e o indicador (gesto de pinça).
-- **Soltar**: Afaste os dedos.
-- **Pausar**: Feche o punho.
+- `helmet` para cabecalhos de seguranca;
+- `cors` com whitelist configuravel;
+- `express-rate-limit` global;
+- validacao forte de entrada e erro padronizado;
+- sanitizacao de payload de eventos para logs.
 
----
+## UX/UI e acessibilidade
 
-## 🛣️ Futuras Melhorias
+- Novo design system com tokens de cor/typography e composicao glass;
+- layout responsivo para desktop e mobile;
+- estados visuais claros de camera/modelo/mao/persistencia;
+- componentes acionaveis com `aria-label`;
+- reducao automatica de animacoes para `prefers-reduced-motion`.
 
-- [ ] Support para gestos multi-manuais.
-- [ ] Integração com APIs de apresentação (Google Slides/PowerPoint).
-- [ ] Calibração personalizada de sensibilidade via UI.
-- [ ] Modo de alta performance para dispositivos móveis.
+## Performance
 
----
+- Loop de particulas otimizado com refs (sem recriar render loop a cada frame).
+- Suavizacao adaptativa do cursor com histerese de pinça.
+- Persistencia com debounce para evitar escrita excessiva.
+- Build de producao validado (`vite build`).
 
-### Autoria
-**Matheus Siqueira**  
-Website: [matheussiqueira.dev](https://www.matheussiqueira.dev/)  
-LinkedIn: [linkedin.com/in/matheussiqueira](https://www.linkedin.com/in/matheussiqueira/)
+## Qualidade e testes
 
----
-*Este projeto foi desenvolvido com foco em excelência técnica e usabilidade futurista.*
+### Scripts
+
+```bash
+npm run dev
+npm run dev:server
+npm run dev:full
+npm run lint
+npm run test
+npm run build
+```
+
+### Cobertura atual
+
+- utilitarios de geometria;
+- heuristicas de gestos;
+- reducer de workspace.
+
+## Instalacao e execucao
+
+1. Clone o repositorio:
+
+```bash
+git clone https://github.com/matheussiqueira-dev/Interface-Web-de-Gestos-Sem-Contato.git
+cd Interface-Web-de-Gestos-Sem-Contato
+```
+
+2. Instale dependencias:
+
+```bash
+npm install
+```
+
+3. Execute frontend + backend:
+
+```bash
+npm run dev:full
+```
+
+4. Acesse:
+
+- Frontend: `http://localhost:5173`
+- API: `http://localhost:8787`
+
+## Variaveis de ambiente
+
+Use `.env.example` como base:
+
+- `PORT`: porta da API;
+- `CLIENT_ORIGIN`: origem autorizada para CORS;
+- `DATA_FILE_PATH`: caminho do arquivo de persistencia;
+- `VITE_API_BASE_URL`: base URL da API no frontend (opcional com proxy local);
+- `VITE_DEV_API_TARGET`: target do proxy Vite em desenvolvimento.
+
+## Deploy
+
+### Frontend
+
+- build estatico em `dist/` (`npm run build`);
+- pode ser servido por CDN, Nginx, Vercel, Netlify etc.
+
+### Backend
+
+- processo Node com `npm run server`;
+- recomendado usar PM2/systemd/container;
+- configurar `PORT`, `CLIENT_ORIGIN` e volume persistente para `server/data`.
+
+## Boas praticas adotadas
+
+- contratos de dados claros e tipados;
+- fallback resiliente para indisponibilidade da API;
+- tratamento de erro explicito na experiencia;
+- separacao clara entre regras de negocio e camada de apresentacao;
+- testes unitarios para pontos criticos de comportamento.
+
+## Melhorias futuras recomendadas
+
+- autenticacao/autorizacao para perfis multiusuario;
+- persistencia em banco (PostgreSQL) com auditoria;
+- testes de integracao da API e e2e do fluxo gestual;
+- suporte multi-mao/multi-gesto e calibracao guiada;
+- painel de analytics com series temporais e exportacao.
+
+Autoria: Matheus Siqueira  
+Website: https://www.matheussiqueira.dev/

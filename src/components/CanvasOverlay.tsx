@@ -26,85 +26,71 @@ export function CanvasOverlay({
     clearSignal,
     handDetected,
 }: Props) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const lastPos = useRef<{ x: number, y: number } | null>(null);
-    const contextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
+  const contextRef = useRef<CanvasRenderingContext2D | null>(null);
 
-    // Resize canvas
-    useEffect(() => {
-        const cvs = canvasRef.current;
-        if (!cvs) return;
-        const ctx = cvs.getContext("2d");
-        if (!ctx) return;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-        cvs.width = Math.floor(width * dpr);
-        cvs.height = Math.floor(height * dpr);
-        cvs.style.width = `${width}px`;
-        cvs.style.height = `${height}px`;
+    const context = canvas.getContext("2d");
+    if (!context) return;
 
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.scale(dpr, dpr);
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.lineWidth = 6; // Thicker lines
-        contextRef.current = ctx;
-    }, [width, height, dpr]);
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
 
-    useEffect(() => {
-        const ctx = contextRef.current;
-        if (!ctx) return;
-        ctx.clearRect(0, 0, width, height);
-        lastPos.current = null;
-    }, [clearSignal, width, height]);
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.scale(dpr, dpr);
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.lineWidth = 5;
+    context.globalCompositeOperation = "source-over";
+    contextRef.current = context;
+  }, [width, height, dpr]);
 
-    // Drawing Logic
-    useEffect(() => {
-        const ctx = contextRef.current;
-        if (!ctx) return;
+  useEffect(() => {
+    const context = contextRef.current;
+    if (!context) return;
+    context.clearRect(0, 0, width, height);
+    lastPos.current = null;
+  }, [clearSignal, width, height]);
 
-        if (!handDetected || !drawingEnabled) {
-            lastPos.current = null;
-            return;
-        }
+  useEffect(() => {
+    const context = contextRef.current;
+    if (!context) return;
 
-        if (isPinching) {
-            if (lastPos.current) {
-                // Glow effect for the line
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = color;
+    if (!handDetected || !drawingEnabled || !isPinching) {
+      lastPos.current = null;
+      return;
+    }
 
-                ctx.beginPath();
-                ctx.moveTo(lastPos.current.x, lastPos.current.y);
-                ctx.lineTo(cursorX, cursorY);
-                ctx.strokeStyle = color;
-                ctx.stroke();
+    if (lastPos.current) {
+      context.shadowBlur = 11;
+      context.shadowColor = color;
+      context.strokeStyle = color;
+      context.beginPath();
+      context.moveTo(lastPos.current.x, lastPos.current.y);
+      context.lineTo(cursorX, cursorY);
+      context.stroke();
+      context.shadowBlur = 0;
+    }
 
-                // Clear shadow for next frame or other drawings
-                ctx.shadowBlur = 0;
-            }
-            lastPos.current = { x: cursorX, y: cursorY };
-        } else {
-            lastPos.current = null;
-        }
+    lastPos.current = { x: cursorX, y: cursorY };
+  }, [color, cursorX, cursorY, drawingEnabled, handDetected, isPinching]);
 
-    }, [cursorX, cursorY, isPinching, drawingEnabled, color, handDetected]);
-
-    return (
-        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 50 }}>
-            {/* Drawing Layer */}
-            <canvas
-                ref={canvasRef}
-                style={{ position: 'absolute', inset: 0 }}
-            />
-
-            {/* Premium Cursor */}
-            <Cursor
-                x={cursorX}
-                y={cursorY}
-                isPinching={isPinching}
-                handDetected={handDetected}
-                color={color}
-            />
-        </div>
-    );
+  return (
+    <div className="canvas-layer" aria-hidden="true">
+      <canvas ref={canvasRef} className="drawing-canvas" />
+      <Cursor
+        x={cursorX}
+        y={cursorY}
+        isPinching={isPinching}
+        handDetected={handDetected}
+        color={color}
+      />
+    </div>
+  );
 }
