@@ -1,0 +1,16 @@
+﻿node_modules
+.next
+out
+coverage
+server
+vite.config.ts
+vitest.config.ts
+src/App.tsx
+src/main.tsx
+src/App.css
+src/index.css
+src/domain
+src/features
+src/shared
+src/test
+src/components/*.tsx

@@ -1,34 +1,54 @@
+﻿"use client";
+
 import { useEffect, useState } from "react";
 
-type ViewportSize = {
+interface ViewportSize {
   width: number;
   height: number;
   dpr: number;
-};
+}
 
-const getViewportSize = (): ViewportSize => ({
-  width: window.innerWidth,
-  height: window.innerHeight,
-  dpr: window.devicePixelRatio || 1,
-});
+function readViewport(): ViewportSize {
+  if (typeof window === "undefined") {
+    return {
+      width: 0,
+      height: 0,
+      dpr: 1,
+    };
+  }
+
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    dpr: window.devicePixelRatio || 1,
+  };
+}
 
 export function useViewportSize(): ViewportSize {
-  const [size, setSize] = useState<ViewportSize>(getViewportSize);
+  const [size, setSize] = useState<ViewportSize>(() => readViewport());
 
   useEffect(() => {
-    let frame = 0;
+    let frameId = 0;
+
     const handleResize = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        setSize(getViewportSize());
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+
+      frameId = requestAnimationFrame(() => {
+        setSize(readViewport());
       });
     };
+
+    handleResize();
 
     window.addEventListener("resize", handleResize);
     window.visualViewport?.addEventListener("resize", handleResize);
 
     return () => {
-      if (frame) cancelAnimationFrame(frame);
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
       window.removeEventListener("resize", handleResize);
       window.visualViewport?.removeEventListener("resize", handleResize);
     };

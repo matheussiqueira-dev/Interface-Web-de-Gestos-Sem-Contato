@@ -1,169 +1,179 @@
-// src/hooks/useHandTracking.ts
-import { useEffect, useState, useRef } from "react";
-import { FilesetResolver, HandLandmarker, HandLandmarkerResult } from "@mediapipe/tasks-vision";
-import type { HandLandmark } from "../types/hand";
+﻿"use client";
 
-type HandTrackingStatus = "idle" | "loading" | "ready" | "error";
+import type { HandLandmarker, HandLandmarkerResult } from "@mediapipe/tasks-vision";
+import { useEffect, useRef, useState } from "react";
 
-interface HandTrackingState {
-    landmarks: HandLandmark[] | null;
-    status: HandTrackingStatus;
-    error: string | null;
+import { logger } from "@/core/system/logger";
+import { createHandLandmarker } from "@/services/mediapipe.service";
+import type { HandTrackingState } from "@/types/tracking";
+
+interface VideoFrameMetadata {
+  mediaTime?: number;
 }
 
-export function useHandTracking(video: HTMLVideoElement | null, enabled = true): HandTrackingState {
-    const [landmarks, setLandmarks] = useState<HandLandmark[] | null>(null);
-    const [status, setStatus] = useState<HandTrackingStatus>("idle");
-    const [error, setError] = useState<string | null>(null);
-    const handLandmarkerRef = useRef<HandLandmarker | null>(null);
-    const requestRef = useRef<number>();
-    const videoFrameRef = useRef<number | null>(null);
-    const lastVideoTimeRef = useRef(-1);
-    const isVisibleRef = useRef(!document.hidden);
-    const hasLandmarksRef = useRef(false);
+type VideoFrameCallback = (now: number, metadata?: VideoFrameMetadata) => void;
 
-    useEffect(() => {
-        const handleVisibility = () => {
-            isVisibleRef.current = !document.hidden;
-            if (document.hidden) {
-                setLandmarks(null);
-            }
-        };
+type VideoWithFrameCallback = HTMLVideoElement & {
+  requestVideoFrameCallback?: (callback: VideoFrameCallback) => number;
+  cancelVideoFrameCallback?: (handle: number) => void;
+};
 
-        document.addEventListener("visibilitychange", handleVisibility);
+export function useHandTracking(
+  videoElement: HTMLVideoElement | null,
+  enabled = true,
+  maxFps = 30,
+): HandTrackingState {
+  const [state, setState] = useState<HandTrackingState>({
+    landmarks: null,
+    status: "idle",
+    error: null,
+  });
 
-        return () => {
-            document.removeEventListener("visibilitychange", handleVisibility);
-        };
-    }, []);
+  const landmarkerRef = useRef<HandLandmarker | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const videoFrameRef = useRef<number | null>(null);
+  const lastVideoTimeRef = useRef(-1);
+  const lastProcessedAtRef = useRef(0);
+  const isVisibleRef = useRef(true);
 
-    useEffect(() => {
-        if (!enabled) {
-            setLandmarks(null);
-            hasLandmarksRef.current = false;
-        }
-    }, [enabled]);
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
 
-    useEffect(() => {
-        let cancelled = false;
+    isVisibleRef.current = !document.hidden;
+    const handleVisibility = () => {
+      isVisibleRef.current = !document.hidden;
+      if (document.hidden) {
+        setState((previous) => ({ ...previous, landmarks: null }));
+      }
+    };
 
-        async function initMediaPipe() {
-            setStatus("loading");
-            setError(null);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
 
-            try {
-                const vision = await FilesetResolver.forVisionTasks(
-                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm"
-                );
+  useEffect(() => {
+    if (!enabled) {
+      setState((previous) => ({ ...previous, landmarks: null, status: "idle", error: null }));
+      landmarkerRef.current?.close?.();
+      landmarkerRef.current = null;
+      return;
+    }
 
-                const createLandmarker = (delegate: "GPU" | "CPU") =>
-                    HandLandmarker.createFromOptions(vision, {
-                        baseOptions: {
-                            modelAssetPath:
-                                "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-                            delegate,
-                        },
-                        runningMode: "VIDEO",
-                        numHands: 1,
-                    });
+    let cancelled = false;
 
-                let landmarker: HandLandmarker;
-                try {
-                    landmarker = await createLandmarker("GPU");
-                } catch (gpuError) {
-                    console.warn("GPU delegate failed, falling back to CPU:", gpuError);
-                    landmarker = await createLandmarker("CPU");
-                }
+    const init = async () => {
+      setState((previous) => ({ ...previous, status: "loading", error: null }));
 
-                if (cancelled) {
-                    landmarker.close?.();
-                    return;
-                }
-
-                handLandmarkerRef.current = landmarker;
-                setStatus("ready");
-            } catch (err) {
-                if (cancelled) return;
-                setStatus("error");
-                setError(err instanceof Error ? err.message : "Falha ao carregar o modelo de mão.");
-                console.error("Error loading MediaPipe:", err);
-            }
+      try {
+        const landmarker = await createHandLandmarker();
+        if (cancelled) {
+          landmarker.close?.();
+          return;
         }
 
-        initMediaPipe();
+        landmarkerRef.current = landmarker;
+        setState((previous) => ({ ...previous, status: "ready", error: null }));
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
 
-        return () => {
-            cancelled = true;
-            handLandmarkerRef.current?.close?.();
-        };
-    }, []);
+        const message = error instanceof Error ? error.message : "Falha ao carregar o modelo de mao.";
+        logger.error("Falha ao carregar MediaPipe", error);
+        setState((previous) => ({ ...previous, status: "error", error: message }));
+      }
+    };
 
-    useEffect(() => {
-        if (!video || !handLandmarkerRef.current || status !== "ready") return;
+    void init();
 
-        let mounted = true;
-        lastVideoTimeRef.current = -1;
-        type VideoFrameCallback = (now: number, metadata?: { mediaTime?: number }) => void;
-        const videoElement = video as HTMLVideoElement & {
-            requestVideoFrameCallback?: (callback: VideoFrameCallback) => number;
-            cancelVideoFrameCallback?: (handle: number) => void;
-        };
+    return () => {
+      cancelled = true;
+      landmarkerRef.current?.close?.();
+      landmarkerRef.current = null;
+    };
+  }, [enabled]);
 
-        const scheduleNext = () => {
-            if (!mounted) return;
-            if (videoElement.requestVideoFrameCallback) {
-                videoFrameRef.current = videoElement.requestVideoFrameCallback((now) => tick(now));
-            } else {
-                requestRef.current = requestAnimationFrame((now) => tick(now));
-            }
-        };
+  useEffect(() => {
+    if (!enabled || !videoElement || !landmarkerRef.current || state.status !== "ready") {
+      return;
+    }
 
-        const tick = (timestamp?: number) => {
-            if (!mounted) return;
+    const video = videoElement as VideoWithFrameCallback;
+    const frameInterval = 1000 / Math.max(maxFps, 1);
+    let mounted = true;
 
-            if (!enabled || !isVisibleRef.current) {
-                if (hasLandmarksRef.current) {
-                    hasLandmarksRef.current = false;
-                    setLandmarks(null);
-                }
-                scheduleNext();
-                return;
-            }
+    lastVideoTimeRef.current = -1;
+    lastProcessedAtRef.current = 0;
 
-            if (videoElement.readyState >= 2) {
-                const now = typeof timestamp === "number" ? timestamp : performance.now();
-                if (videoElement.currentTime !== lastVideoTimeRef.current) {
-                    lastVideoTimeRef.current = videoElement.currentTime;
-                    try {
-                        const result: HandLandmarkerResult =
-                            handLandmarkerRef.current!.detectForVideo(videoElement, now);
+    const scheduleNext = () => {
+      if (!mounted) {
+        return;
+      }
 
-                        if (result.landmarks && result.landmarks.length > 0) {
-                            hasLandmarksRef.current = true;
-                            setLandmarks(result.landmarks[0] as HandLandmark[]);
-                        } else if (hasLandmarksRef.current) {
-                            hasLandmarksRef.current = false;
-                            setLandmarks(null);
-                        }
-                    } catch (e) {
-                        console.warn("Hand tracking error:", e);
-                    }
-                }
-            }
+      if (video.requestVideoFrameCallback) {
+        videoFrameRef.current = video.requestVideoFrameCallback((timestamp) => tick(timestamp));
+      } else {
+        rafRef.current = requestAnimationFrame((timestamp) => tick(timestamp));
+      }
+    };
 
-            scheduleNext();
-        };
+    const tick = (timestamp: number) => {
+      if (!mounted) {
+        return;
+      }
 
+      if (!isVisibleRef.current || !enabled) {
+        setState((previous) => (previous.landmarks ? { ...previous, landmarks: null } : previous));
         scheduleNext();
+        return;
+      }
 
-        return () => {
-            mounted = false;
-            if (requestRef.current) cancelAnimationFrame(requestRef.current);
-            if (videoFrameRef.current !== null && videoElement.cancelVideoFrameCallback) {
-                videoElement.cancelVideoFrameCallback(videoFrameRef.current);
+      if (timestamp - lastProcessedAtRef.current < frameInterval) {
+        scheduleNext();
+        return;
+      }
+
+      if (video.readyState >= 2 && video.currentTime !== lastVideoTimeRef.current) {
+        try {
+          const result: HandLandmarkerResult = landmarkerRef.current!.detectForVideo(video, timestamp);
+          lastVideoTimeRef.current = video.currentTime;
+          lastProcessedAtRef.current = timestamp;
+
+          const nextLandmarks = result.landmarks?.[0] ?? null;
+          setState((previous) => {
+            if (!nextLandmarks && !previous.landmarks) {
+              return previous;
             }
-        };
-    }, [video, enabled, status]);
+            return {
+              ...previous,
+              landmarks: nextLandmarks,
+            };
+          });
+        } catch (error) {
+          logger.warn("Erro durante inferencia de gesto", error);
+        }
+      }
 
-    return { landmarks, status, error };
+      scheduleNext();
+    };
+
+    scheduleNext();
+
+    return () => {
+      mounted = false;
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+
+      if (videoFrameRef.current !== null && video.cancelVideoFrameCallback) {
+        video.cancelVideoFrameCallback(videoFrameRef.current);
+      }
+    };
+  }, [enabled, maxFps, state.status, videoElement]);
+
+  return state;
 }

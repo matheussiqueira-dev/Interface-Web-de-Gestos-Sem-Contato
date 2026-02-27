@@ -1,3 +1,5 @@
+﻿"use client";
+
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 interface CursorProps {
@@ -9,23 +11,18 @@ interface CursorProps {
 }
 
 export function Cursor({ x, y, isPinching, handDetected, color }: CursorProps) {
-  const prefersReducedMotion = useReducedMotion();
+  const reducedMotion = useReducedMotion();
 
   return (
     <AnimatePresence>
-      {handDetected && (
+      {handDetected ? (
         <motion.div
           className="cursor-wrapper"
           initial={{ opacity: 0, scale: 0.6 }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            x: x - 15,
-            y: y - 15,
-          }}
+          animate={{ opacity: 1, scale: 1, x: x - 15, y: y - 15 }}
           exit={{ opacity: 0, scale: 0.2 }}
           transition={
-            prefersReducedMotion
+            reducedMotion
               ? { duration: 0.01 }
               : {
                   type: "spring",
@@ -43,9 +40,7 @@ export function Cursor({ x, y, isPinching, handDetected, color }: CursorProps) {
               scale: isPinching ? 0.84 : 1,
               borderColor: isPinching ? color : "rgba(255,255,255,0.75)",
               borderWidth: isPinching ? 4 : 2,
-              boxShadow: isPinching
-                ? `0 0 18px ${color}`
-                : "0 0 10px rgba(15,23,42,0.32)",
+              boxShadow: isPinching ? `0 0 18px ${color}` : "0 0 10px rgba(15,23,42,0.32)",
             }}
           />
 
@@ -57,7 +52,7 @@ export function Cursor({ x, y, isPinching, handDetected, color }: CursorProps) {
             }}
           />
 
-          {!prefersReducedMotion && isPinching && (
+          {!reducedMotion && isPinching ? (
             <motion.div
               className="cursor-pulse"
               style={{ borderColor: color }}
@@ -65,9 +60,9 @@ export function Cursor({ x, y, isPinching, handDetected, color }: CursorProps) {
               animate={{ scale: 2, opacity: 0 }}
               transition={{ repeat: Number.POSITIVE_INFINITY, duration: 0.95 }}
             />
-          )}
+          ) : null}
         </motion.div>
-      )}
+      ) : null}
     </AnimatePresence>
   );
 }

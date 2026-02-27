@@ -1,44 +1,40 @@
-// src/utils/gestures.ts
-import type { HandLandmark } from "../types/hand";
+﻿import type { HandLandmark } from "@/types/tracking";
 
-function distance(a: HandLandmark, b: HandLandmark) {
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-    return Math.sqrt(dx * dx + dy * dy);
+function distance(a: HandLandmark, b: HandLandmark): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 export function getHandScale(landmarks: HandLandmark[]): number {
-    if (!landmarks || landmarks.length < 21) return 0;
+  if (landmarks.length < 21) {
+    return 0;
+  }
 
-    const palmWidth = distance(landmarks[5], landmarks[17]);
-    const palmLength = distance(landmarks[0], landmarks[9]);
-
-    return Math.max(palmWidth, palmLength);
+  const palmWidth = distance(landmarks[5], landmarks[17]);
+  const palmLength = distance(landmarks[0], landmarks[9]);
+  return Math.max(palmWidth, palmLength);
 }
 
-// Thumb Tip: 4, Index Tip: 8
 export function detectPinch(landmarks: HandLandmark[], threshold = 0.05): boolean {
-    if (!landmarks || landmarks.length < 21) return false;
+  if (landmarks.length < 21) {
+    return false;
+  }
 
-    const thumbTip = landmarks[4];
-    const indexTip = landmarks[8];
-
-    const d = distance(thumbTip, indexTip);
-
-    return d < threshold;
+  return distance(landmarks[4], landmarks[8]) < threshold;
 }
 
-// Fist: fingers curled down
 export function detectFist(landmarks: HandLandmark[]): boolean {
-    if (!landmarks || landmarks.length < 21) return false;
+  if (landmarks.length < 21) {
+    return false;
+  }
 
-    const pairs = [
-        [8, 5],   // Index
-        [12, 9],  // Middle
-        [16, 13], // Ring
-        [20, 17], // Pinky
-    ] as const;
+  const pairs = [
+    [8, 5],
+    [12, 9],
+    [16, 13],
+    [20, 17],
+  ] as const;
 
-    // Check if tip is below the base joint (higher y value means lower on screen)
-    return pairs.every(([tip, base]) => landmarks[tip].y > landmarks[base].y);
+  return pairs.every(([tip, base]) => landmarks[tip].y > landmarks[base].y);
 }

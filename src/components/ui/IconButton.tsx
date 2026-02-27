@@ -1,3 +1,5 @@
+﻿"use client";
+
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 
@@ -14,9 +16,9 @@ export function IconButton({
   icon,
   label,
   onClick,
-  active,
-  danger,
-  disabled,
+  active = false,
+  danger = false,
+  disabled = false,
 }: IconButtonProps) {
   return (
     <motion.button

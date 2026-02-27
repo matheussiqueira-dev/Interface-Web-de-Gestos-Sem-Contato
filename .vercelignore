@@ -1,0 +1,8 @@
+﻿node_modules
+.git
+assets
+Self Drive-Car
+server
+dist
+coverage
+*.log

@@ -1,5 +1,5 @@
-import type { WorkspaceSnapshot } from "../domain/workspace";
-import { createDefaultWorkspaceSnapshot } from "../domain/workspace";
+﻿import { createDefaultWorkspaceSnapshot } from "@/lib/workspace/defaults";
+import type { WorkspaceEventType, WorkspaceSnapshot } from "@/types/workspace";
 
 type PersistenceMode = "api" | "local";
 
@@ -8,9 +8,9 @@ interface LoadResult {
   mode: PersistenceMode;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
-const API_TOKEN = import.meta.env.VITE_API_TOKEN ?? "";
-const LOCAL_STORAGE_KEY = "touchless_workspace_v2";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/+$/, "");
+const API_TOKEN = process.env.NEXT_PUBLIC_API_TOKEN ?? "";
+const LOCAL_STORAGE_KEY = "touchless_workspace_v3";
 
 function withAuthHeader(initHeaders: HeadersInit = {}): HeadersInit {
   if (!API_TOKEN) {
@@ -27,15 +27,20 @@ function getApiUrl(path: string): string {
   return `${API_BASE_URL}${path}`;
 }
 
+function canUseStorage(): boolean {
+  return typeof window !== "undefined" && Boolean(window.localStorage);
+}
+
 function safeParseWorkspace(raw: string | null): WorkspaceSnapshot | null {
-  if (!raw) return null;
+  if (!raw) {
+    return null;
+  }
 
   try {
     const parsed = JSON.parse(raw) as WorkspaceSnapshot;
     if (!parsed || !Array.isArray(parsed.notes) || !parsed.settings) {
       return null;
     }
-
     return parsed;
   } catch {
     return null;
@@ -43,10 +48,14 @@ function safeParseWorkspace(raw: string | null): WorkspaceSnapshot | null {
 }
 
 function persistLocal(snapshot: WorkspaceSnapshot): void {
+  if (!canUseStorage()) {
+    return;
+  }
+
   try {
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
   } catch {
-    // localStorage may be unavailable in private contexts
+    // localStorage may be unavailable in private browsing contexts
   }
 }
 
@@ -58,6 +67,7 @@ export async function loadWorkspaceSnapshot(): Promise<LoadResult> {
         ...withAuthHeader(),
         Accept: "application/json",
       },
+      cache: "no-store",
     });
 
     if (response.ok) {
@@ -69,7 +79,10 @@ export async function loadWorkspaceSnapshot(): Promise<LoadResult> {
     // fallback to local storage
   }
 
-  const localSnapshot = safeParseWorkspace(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+  const localSnapshot = canUseStorage()
+    ? safeParseWorkspace(window.localStorage.getItem(LOCAL_STORAGE_KEY))
+    : null;
+
   if (localSnapshot) {
     return { snapshot: localSnapshot, mode: "local" };
   }
@@ -99,19 +112,14 @@ export async function saveWorkspaceSnapshot(
       return "api";
     }
   } catch {
-    // fallback kept in local storage
+    // fallback remains local
   }
 
   return "local";
 }
 
 export async function trackWorkspaceEvent(
-  type:
-    | "workspace_loaded"
-    | "workspace_saved"
-    | "tracking_paused"
-    | "tracking_resumed"
-    | "camera_error",
+  type: WorkspaceEventType,
   payload: Record<string, string | number | boolean | null> = {},
 ): Promise<void> {
   try {
