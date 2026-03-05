@@ -4,6 +4,7 @@ import { Camera, CameraOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 
+import { Panel } from "@/components/ui/Panel";
 import type { CameraPermissionState } from "@/types/camera";
 
 interface CameraPermissionGuardProps {
@@ -73,15 +74,25 @@ export function CameraPermissionGuard({ children }: CameraPermissionGuardProps) 
   const loading = permission === "requesting";
 
   return (
-    <div className="camera-guard glass">
-      <div className="camera-guard-header">
-        {permission === "denied" || permission === "unsupported" ? <CameraOff size={20} /> : <Camera size={20} />}
-        <strong>Permissao de camera</strong>
-      </div>
-      <p>{message}</p>
-      <button type="button" className="error-btn" onClick={requestPermission} disabled={loading}>
-        {loading ? "Solicitando..." : "Ativar camera"}
-      </button>
+    <div className="camera-guard">
+      <Panel
+        eyebrow="ACCESS CONTROL"
+        title={
+          <>
+            {permission === "denied" || permission === "unsupported" ? (
+              <CameraOff size={18} />
+            ) : (
+              <Camera size={18} />
+            )}
+            Permissao de camera
+          </>
+        }
+      >
+        <p>{message}</p>
+        <button type="button" className="panel-action-btn" onClick={requestPermission} disabled={loading}>
+          {loading ? "Solicitando..." : "Ativar camera"}
+        </button>
+      </Panel>
     </div>
   );
 }

@@ -1,13 +1,13 @@
 ﻿import type { WorkspaceSettings, WorkspaceSnapshot } from "@/types/workspace";
 
-export const NOTE_COLORS = ["#fef3c7", "#d9f99d", "#bfdbfe", "#fecaca", "#fde68a"];
+export const NOTE_COLORS = ["#00E5FF", "#33F3FF", "#00B8D9", "#6CF7FF", "#0FF1FF"];
 
 export const DRAW_COLORS = [
-  { label: "Turquesa", value: "#2dd4bf" },
-  { label: "Ciano", value: "#22d3ee" },
-  { label: "Laranja", value: "#fb923c" },
-  { label: "Rosa", value: "#f472b6" },
-  { label: "Lima", value: "#a3e635" },
+  { label: "Neon Blue", value: "#00E5FF" },
+  { label: "Secondary Blue", value: "#00B8D9" },
+  { label: "Accent Cyan", value: "#33F3FF" },
+  { label: "Glow Core", value: "#00FFFF" },
+  { label: "Ice Signal", value: "#6CF7FF" },
 ] as const;
 
 export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
@@ -22,8 +22,8 @@ const DEFAULT_NOTES = [
     id: "welcome-note",
     x: 96,
     y: 140,
-    color: "#fef3c7",
-    text: "Use pinça para mover as notas pela mesa.",
+    color: "#00E5FF",
+    text: "Use pinca para deslocar paineis pelo grid.",
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
   },
@@ -31,8 +31,8 @@ const DEFAULT_NOTES = [
     id: "draw-note",
     x: 420,
     y: 220,
-    color: "#d9f99d",
-    text: "Pinça no espaço vazio para desenhar.",
+    color: "#33F3FF",
+    text: "Pinca no espaco livre para desenhar trilhas de luz.",
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
   },
@@ -40,8 +40,8 @@ const DEFAULT_NOTES = [
     id: "pause-note",
     x: 220,
     y: 430,
-    color: "#bfdbfe",
-    text: "Punho fechado pausa o tracking por segurança.",
+    color: "#00B8D9",
+    text: "Punho fechado interrompe o tracking por seguranca.",
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
   },

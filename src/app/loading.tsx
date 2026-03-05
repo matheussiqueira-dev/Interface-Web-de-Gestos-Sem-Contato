@@ -1,3 +1,3 @@
 ﻿export default function Loading() {
-  return <div className="screen-loading">Carregando aplicacao...</div>;
+  return <div className="screen-loading">Inicializando terminal ENCOM...</div>;
 }

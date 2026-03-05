@@ -1,5 +1,8 @@
 ﻿"use client";
 
+import { Cpu } from "lucide-react";
+
+import { Panel } from "@/components/ui/Panel";
 import type { PerformanceSnapshot } from "@/core/system/performance";
 
 interface SystemHealthOverlayProps {
@@ -10,8 +13,17 @@ interface SystemHealthOverlayProps {
 
 export function SystemHealthOverlay({ performance, trackingEnabled, notes }: SystemHealthOverlayProps) {
   return (
-    <aside className="system-health glass" aria-live="polite">
-      <h2>System Health</h2>
+    <Panel
+      as="aside"
+      className="system-health"
+      eyebrow="ENCOM DIAGNOSTICS"
+      title={
+        <>
+          <Cpu size={16} />
+          System health
+        </>
+      }
+    >
       <ul>
         <li>
           <span>Tracking</span>
@@ -34,6 +46,6 @@ export function SystemHealthOverlay({ performance, trackingEnabled, notes }: Sys
           <strong>{notes}</strong>
         </li>
       </ul>
-    </aside>
+    </Panel>
   );
 }

@@ -7,3 +7,5 @@ coverage
 .vscode
 
 .vercel
+.next
+tsconfig.tsbuildinfo

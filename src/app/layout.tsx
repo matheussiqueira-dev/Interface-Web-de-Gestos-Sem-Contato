@@ -1,28 +1,31 @@
 ﻿import type { Metadata } from "next";
-import { IBM_Plex_Mono, Outfit, Sora } from "next/font/google";
+import { Exo_2, Orbitron, Rajdhani } from "next/font/google";
 import type { ReactNode } from "react";
 
+import { AppFooter } from "@/components/layout/AppFooter";
+import { FloatingWhatsAppButton } from "@/components/layout/FloatingWhatsAppButton";
 import "@/styles/globals.css";
 
-const outfit = Outfit({
+const orbitron = Orbitron({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-heading",
 });
 
-const sora = Sora({
+const rajdhani = Rajdhani({
   subsets: ["latin"],
-  variable: "--font-sora",
+  variable: "--font-ui",
+  weight: ["400", "500", "600", "700"],
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
+const exo2 = Exo_2({
   subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400", "500", "600"],
+  variable: "--font-body",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Touchless Workspace",
-  description: "Interface web de gestos sem contato com Next.js e TypeScript.",
+  title: "ENCOM Touchless Workspace",
+  description: "Workspace touchless com visual Tron Legacy e sistema ENCOM.",
 };
 
 export default function RootLayout({
@@ -32,7 +35,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${outfit.variable} ${sora.variable} ${ibmPlexMono.variable}`}>{children}</body>
+      <body className={`${orbitron.variable} ${rajdhani.variable} ${exo2.variable}`}>
+        {children}
+        <AppFooter />
+        <FloatingWhatsAppButton />
+      </body>
     </html>
   );
 }

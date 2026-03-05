@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { GripVertical, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 import type { WorkspaceNote } from "@/types/workspace";
 import { clamp } from "@/utils/geometry";
@@ -152,10 +152,10 @@ export function NotesBoard({
                 x: note.x,
                 y: note.y,
                 boxShadow: dragging
-                  ? "0 24px 38px rgba(15, 23, 42, 0.38)"
+                  ? `0 0 0 1px ${note.color}, 0 0 22px ${note.color}, 0 24px 38px rgba(0, 0, 0, 0.48)`
                   : selected
-                    ? "0 16px 30px rgba(15, 23, 42, 0.28)"
-                    : "0 10px 18px rgba(15, 23, 42, 0.18)",
+                    ? `0 0 0 1px ${note.color}, 0 0 16px ${note.color}, 0 16px 30px rgba(0, 0, 0, 0.42)`
+                    : `0 0 0 1px ${note.color}88, 0 0 12px ${note.color}44, 0 10px 18px rgba(0, 0, 0, 0.34)`,
               }}
               transition={{
                 type: "spring",
@@ -165,12 +165,12 @@ export function NotesBoard({
                 y: { duration: 0.06 },
               }}
               style={{
-                backgroundColor: note.color,
                 left: 0,
                 top: 0,
                 position: "absolute",
                 zIndex: selected || dragging ? 35 : 20,
-              }}
+                ["--note-accent" as string]: note.color,
+              } as CSSProperties}
               onPointerDown={() => onSelectNote(note.id)}
               role="group"
               aria-label={`Nota ${note.id}`}

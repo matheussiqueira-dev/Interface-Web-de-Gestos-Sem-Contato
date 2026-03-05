@@ -22,6 +22,7 @@ import { NotesBoard } from "@/components/gesture/NotesBoard";
 import { SystemHealthOverlay } from "@/components/gesture/SystemHealthOverlay";
 import { VideoFeed } from "@/components/gesture/VideoFeed";
 import { IconButton } from "@/components/ui/IconButton";
+import { Panel } from "@/components/ui/Panel";
 import { DRAW_COLORS, NOTE_COLORS } from "@/lib/workspace/defaults";
 import { createInitialWorkspaceState, workspaceReducer } from "@/lib/workspace/reducer";
 import { useGestureEngine } from "@/hooks/useGestureEngine";
@@ -333,156 +334,172 @@ export default function GestureWorkspace() {
       />
 
       <main className="main-overlay">
-        <header className="top-bar">
-          <motion.div className="brand-block" initial={{ y: -14, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-            <p className="brand-kicker">Touchless Workspace</p>
-            <h1>Interface de gestos sem contato para quadro colaborativo</h1>
+        <header className="workspace-hero">
+          <motion.div className="brand-block encom-panel brand-panel" initial={{ y: -14, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+            <p className="brand-kicker">ENCOM ACTIVE WORKSPACE</p>
+            <h1>Touchless control deck para operacao gestual em tempo real</h1>
             <p className="brand-subtitle">
-              Arquitetura desacoplada, persistencia API/local, calibracao em tempo real e feedback
-              visual de baixa latencia.
+              Interface inspirada em Tron Legacy com tracking low-latency, persistencia API/local,
+              calibracao dinamica e feedback visual holografico.
             </p>
           </motion.div>
 
-          <GestureStatusIndicator
-            cameraReady={cameraReady}
-            cameraError={cameraError}
-            trackingStatus={trackingStatus}
-            handDetected={handDetected}
-            saveBadge={saveBadge}
-            persistenceMode={persistenceMode}
-          />
+          <div className="status-column">
+            <GestureStatusIndicator
+              cameraReady={cameraReady}
+              cameraError={cameraError}
+              trackingStatus={trackingStatus}
+              handDetected={handDetected}
+              saveBadge={saveBadge}
+              persistenceMode={persistenceMode}
+            />
+          </div>
         </header>
 
-        <section className="content-grid">
-          <motion.section className="control-panel glass" initial={{ x: -18, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
-            <div className="panel-title-row">
-              <h2>
-                <Gauge size={17} />
-                Controle operacional
-              </h2>
-              <span className={`save-chip ${saveTone}`}>
-                <Cloud size={14} />
-                {saveBadge}
-              </span>
-            </div>
-
-            <div className="control-row">
-              <IconButton
-                icon={state.trackingEnabled ? <Pause size={18} /> : <Play size={18} />}
-                label={state.trackingEnabled ? "Pausar tracking" : "Retomar tracking"}
-                onClick={handleToggleTracking}
-                active={!state.trackingEnabled}
-              />
-              <IconButton icon={<Trash2 size={18} />} label="Limpar desenho" onClick={handleClearDrawing} danger />
-              <IconButton icon={<RotateCcw size={18} />} label="Resetar workspace" onClick={handleResetWorkspace} />
-              <IconButton icon={<Plus size={18} />} label="Adicionar nota" onClick={handleAddNote} />
-            </div>
-
-            <div className="control-stack">
-              <div className="control-group">
-                <label htmlFor="pinch-sensitivity">
-                  Sensibilidade de pinca
-                  <output>{settings.pinchSensitivity.toFixed(2)}x</output>
-                </label>
-                <input
-                  id="pinch-sensitivity"
-                  type="range"
-                  min={0.6}
-                  max={1.7}
-                  step={0.05}
-                  value={settings.pinchSensitivity}
-                  onChange={(event) =>
-                    handlePatchSettings({
-                      pinchSensitivity: Number.parseFloat(event.target.value),
-                    })
-                  }
-                />
-              </div>
-
-              <div className="control-group">
-                <label htmlFor="cursor-responsiveness">
-                  Responsividade do cursor
-                  <output>{settings.cursorResponsiveness.toFixed(2)}x</output>
-                </label>
-                <input
-                  id="cursor-responsiveness"
-                  type="range"
-                  min={0.6}
-                  max={1.7}
-                  step={0.05}
-                  value={settings.cursorResponsiveness}
-                  onChange={(event) =>
-                    handlePatchSettings({
-                      cursorResponsiveness: Number.parseFloat(event.target.value),
-                    })
-                  }
-                />
-              </div>
-
-              <div className="control-group">
-                <span className="label-inline">
-                  <Paintbrush size={15} />
-                  Cor de desenho
+        <section className="workspace-grid">
+          <motion.div className="workspace-command-center" initial={{ x: -18, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
+            <Panel
+              className="control-panel"
+              eyebrow="CONTROL NODE"
+              title={
+                <>
+                  <Gauge size={17} />
+                  Controle operacional
+                </>
+              }
+              headerAside={
+                <span className={`save-chip ${saveTone}`}>
+                  <Cloud size={14} />
+                  {saveBadge}
                 </span>
-                <div className="palette-row">
-                  {DRAW_COLORS.map((color) => (
-                    <button
-                      key={color.value}
-                      type="button"
-                      className={`color-dot clickable ${settings.drawingColor === color.value ? "active" : ""}`}
-                      style={{ backgroundColor: color.value }}
-                      aria-label={`Selecionar ${color.label}`}
-                      title={`Selecionar ${color.label}`}
-                      onClick={() => handlePatchSettings({ drawingColor: color.value })}
-                    />
-                  ))}
+              }
+            >
+              <div className="control-row">
+                <IconButton
+                  icon={state.trackingEnabled ? <Pause size={18} /> : <Play size={18} />}
+                  label={state.trackingEnabled ? "Pausar tracking" : "Retomar tracking"}
+                  onClick={handleToggleTracking}
+                  active={!state.trackingEnabled}
+                />
+                <IconButton icon={<Trash2 size={18} />} label="Limpar desenho" onClick={handleClearDrawing} danger />
+                <IconButton icon={<RotateCcw size={18} />} label="Resetar workspace" onClick={handleResetWorkspace} />
+                <IconButton icon={<Plus size={18} />} label="Adicionar nota" onClick={handleAddNote} />
+              </div>
+
+              <div className="control-stack">
+                <div className="control-group">
+                  <label htmlFor="pinch-sensitivity">
+                    Sensibilidade de pinca
+                    <output>{settings.pinchSensitivity.toFixed(2)}x</output>
+                  </label>
+                  <input
+                    id="pinch-sensitivity"
+                    type="range"
+                    min={0.6}
+                    max={1.7}
+                    step={0.05}
+                    value={settings.pinchSensitivity}
+                    onChange={(event) =>
+                      handlePatchSettings({
+                        pinchSensitivity: Number.parseFloat(event.target.value),
+                      })
+                    }
+                  />
                 </div>
+
+                <div className="control-group">
+                  <label htmlFor="cursor-responsiveness">
+                    Responsividade do cursor
+                    <output>{settings.cursorResponsiveness.toFixed(2)}x</output>
+                  </label>
+                  <input
+                    id="cursor-responsiveness"
+                    type="range"
+                    min={0.6}
+                    max={1.7}
+                    step={0.05}
+                    value={settings.cursorResponsiveness}
+                    onChange={(event) =>
+                      handlePatchSettings({
+                        cursorResponsiveness: Number.parseFloat(event.target.value),
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="control-group">
+                  <span className="label-inline">
+                    <Paintbrush size={15} />
+                    Cor de desenho
+                  </span>
+                  <div className="palette-row">
+                    {DRAW_COLORS.map((color) => (
+                      <button
+                        key={color.value}
+                        type="button"
+                        className={`color-dot clickable ${settings.drawingColor === color.value ? "active" : ""}`}
+                        style={{ backgroundColor: color.value }}
+                        aria-label={`Selecionar ${color.label}`}
+                        title={`Selecionar ${color.label}`}
+                        onClick={() => handlePatchSettings({ drawingColor: color.value })}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <label className="switch-field">
+                  <input
+                    type="checkbox"
+                    checked={settings.particlesEnabled}
+                    onChange={(event) => handlePatchSettings({ particlesEnabled: event.target.checked })}
+                  />
+                  <span>
+                    <Sparkles size={14} />
+                    Particulas de feedback
+                  </span>
+                </label>
               </div>
+            </Panel>
+          </motion.div>
 
-              <label className="switch-field">
-                <input
-                  type="checkbox"
-                  checked={settings.particlesEnabled}
-                  onChange={(event) => handlePatchSettings({ particlesEnabled: event.target.checked })}
-                />
-                <span>
-                  <Sparkles size={14} />
-                  Particulas de feedback
-                </span>
-              </label>
-            </div>
-          </motion.section>
+          <motion.div className="workspace-side-rail" initial={{ x: 18, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
+            <Panel
+              as="aside"
+              className="metrics-panel"
+              eyebrow="SESSION METRICS"
+              title={
+                <>
+                  <Gauge size={17} />
+                  Metricas da sessao
+                </>
+              }
+            >
+              <ul>
+                {metricsCards.map((item) => (
+                  <li key={item.label}>
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </li>
+                ))}
+              </ul>
+              <p className="metrics-footnote">Tracking pausa quando o punho fechado e detectado.</p>
+            </Panel>
 
-          <motion.aside className="metrics-panel glass" initial={{ x: 18, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
-            <h2>
-              <Gauge size={17} />
-              Metricas da sessao
-            </h2>
-            <ul>
-              {metricsCards.map((item) => (
-                <li key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </li>
-              ))}
-            </ul>
-            <p className="metrics-footnote">Tracking pausa quando o punho fechado e detectado.</p>
-          </motion.aside>
+            <SystemHealthOverlay
+              performance={performance}
+              trackingEnabled={state.trackingEnabled}
+              notes={notes.length}
+            />
+          </motion.div>
         </section>
 
-        <footer className="bottom-hint glass">
+        <footer className="bottom-hint">
           <p>
             <strong>Fluxo recomendado:</strong> abra a mao para navegar, pinca para mover ou desenhar
             e punho para interromper a interacao.
           </p>
           {loadingWorkspace ? <span className="loader-chip">Carregando workspace...</span> : null}
         </footer>
-
-        <SystemHealthOverlay
-          performance={performance}
-          trackingEnabled={state.trackingEnabled}
-          notes={notes.length}
-        />
       </main>
 
       <AnimatePresence>
