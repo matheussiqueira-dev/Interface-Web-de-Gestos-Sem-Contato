@@ -1,8 +1,13 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 
-import { computeGestureFrame, createInitialGestureState } from "@/lib/gestureEngine";
+import {
+  computeGestureFrame,
+  createCursorHistory,
+  createInitialGestureState,
+  pushCursorHistory,
+} from "@/lib/gestureEngine";
 import type { GestureEngineOptions, GestureState } from "@/types/gesture";
 import type { HandLandmark } from "@/types/tracking";
 import { clamp } from "@/utils/geometry";
@@ -24,6 +29,7 @@ export function useGestureEngine(
   const pinchingRef = useRef(false);
   const lastEmitRef = useRef<GestureState>(state);
   const lastEmitTimeRef = useRef(0);
+  const cursorHistoryRef = useRef(createCursorHistory());
 
   useEffect(() => {
     const clampedX = clamp(cursorRef.current.x, 0, viewportWidth);
@@ -48,11 +54,13 @@ export function useGestureEngine(
         return;
       }
 
-      const next = {
+      const next: GestureState = {
         ...previous,
         isPinching: false,
         isFist: false,
         handDetected: false,
+        swipeDirection: null,
+        gestureConfidence: 0,
       };
 
       pinchingRef.current = false;
@@ -68,20 +76,29 @@ export function useGestureEngine(
       previousPinching: pinchingRef.current,
       previousCursor: cursorRef.current,
       options,
+      cursorHistory: cursorHistoryRef.current,
     });
 
+    pushCursorHistory(cursorHistoryRef.current, frame.cursor);
     cursorRef.current = frame.cursor;
     pinchingRef.current = frame.isPinching;
 
     const previous = lastEmitRef.current;
-    const moved = Math.hypot(frame.state.cursorX - previous.cursorX, frame.state.cursorY - previous.cursorY);
+    const moved = Math.hypot(
+      frame.state.cursorX - previous.cursorX,
+      frame.state.cursorY - previous.cursorY,
+    );
     const stateChanged =
       frame.state.isPinching !== previous.isPinching ||
       frame.state.isFist !== previous.isFist ||
-      frame.state.handDetected !== previous.handDetected;
+      frame.state.handDetected !== previous.handDetected ||
+      frame.state.swipeDirection !== previous.swipeDirection;
 
     const now = performance.now();
-    if (stateChanged || (moved > MOVEMENT_EPSILON && now - lastEmitTimeRef.current >= EMIT_INTERVAL_MS)) {
+    if (
+      stateChanged ||
+      (moved > MOVEMENT_EPSILON && now - lastEmitTimeRef.current >= EMIT_INTERVAL_MS)
+    ) {
       lastEmitRef.current = frame.state;
       lastEmitTimeRef.current = now;
       setState(frame.state);
