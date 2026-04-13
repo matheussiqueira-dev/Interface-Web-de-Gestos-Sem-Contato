@@ -1,9 +1,12 @@
-﻿import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 
 import { logger } from "@/core/system/logger";
+import { applyRateLimit } from "@/lib/api/rateLimit";
 import { internalError, requireApiToken, validationError } from "@/lib/workspace/api";
 import { eventSchema } from "@/lib/workspace/schema";
+
+const EVENT_LIMIT = { limit: 30, windowMs: 60_000 };
 
 function sanitizePayload(payload: Record<string, string | number | boolean | null>) {
   return Object.fromEntries(
@@ -17,6 +20,9 @@ function sanitizePayload(payload: Record<string, string | number | boolean | nul
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimited = applyRateLimit(request, EVENT_LIMIT);
+  if (rateLimited) return rateLimited;
+
   try {
     const unauthorized = requireApiToken(request);
     if (unauthorized) {
