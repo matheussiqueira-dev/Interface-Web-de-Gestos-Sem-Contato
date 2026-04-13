@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import { motion } from "framer-motion";
 
 export type StatusTone = "success" | "warning" | "danger" | "neutral";
@@ -12,7 +12,7 @@ interface StatusPillProps {
   icon?: ReactNode;
 }
 
-export function StatusPill({ label, value, tone, icon }: StatusPillProps) {
+function StatusPillComponent({ label, value, tone, icon }: StatusPillProps) {
   const dotClassName = `dot dot-${tone === "success" ? "active" : tone}`;
 
   return (
@@ -30,3 +30,5 @@ export function StatusPill({ label, value, tone, icon }: StatusPillProps) {
     </motion.div>
   );
 }
+
+export const StatusPill = memo(StatusPillComponent);

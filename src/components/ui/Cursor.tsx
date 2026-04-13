@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { memo } from "react";
 
 interface CursorProps {
   x: number;
@@ -10,7 +11,7 @@ interface CursorProps {
   color: string;
 }
 
-export function Cursor({ x, y, isPinching, handDetected, color }: CursorProps) {
+function CursorComponent({ x, y, isPinching, handDetected, color }: CursorProps) {
   const reducedMotion = useReducedMotion();
 
   return (
@@ -66,3 +67,5 @@ export function Cursor({ x, y, isPinching, handDetected, color }: CursorProps) {
     </AnimatePresence>
   );
 }
+
+export const Cursor = memo(CursorComponent);

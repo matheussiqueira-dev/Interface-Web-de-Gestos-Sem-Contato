@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { Cpu } from "lucide-react";
+import { memo } from "react";
 
 import { Panel } from "@/components/ui/Panel";
 import type { PerformanceSnapshot } from "@/core/system/performance";
@@ -11,7 +12,11 @@ interface SystemHealthOverlayProps {
   notes: number;
 }
 
-export function SystemHealthOverlay({ performance, trackingEnabled, notes }: SystemHealthOverlayProps) {
+function SystemHealthOverlayComponent({
+  performance,
+  trackingEnabled,
+  notes,
+}: SystemHealthOverlayProps) {
   return (
     <Panel
       as="aside"
@@ -39,7 +44,9 @@ export function SystemHealthOverlay({ performance, trackingEnabled, notes }: Sys
         </li>
         <li>
           <span>Memoria</span>
-          <strong>{performance.memoryMb ? `${performance.memoryMb.toFixed(1)} MB` : "N/D"}</strong>
+          <strong>
+            {performance.memoryMb ? `${performance.memoryMb.toFixed(1)} MB` : "N/D"}
+          </strong>
         </li>
         <li>
           <span>Notas</span>
@@ -49,3 +56,5 @@ export function SystemHealthOverlay({ performance, trackingEnabled, notes }: Sys
     </Panel>
   );
 }
+
+export const SystemHealthOverlay = memo(SystemHealthOverlayComponent);

@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { Camera, Cloud, Cpu, Hand } from "lucide-react";
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 
 import { StatusPill, type StatusTone } from "@/components/ui/StatusPill";
 
@@ -21,7 +21,7 @@ interface StatusItem {
   icon: ReactNode;
 }
 
-export function GestureStatusIndicator({
+function GestureStatusIndicatorComponent({
   cameraReady,
   cameraError,
   trackingStatus,
@@ -78,3 +78,5 @@ export function GestureStatusIndicator({
     </div>
   );
 }
+
+export const GestureStatusIndicator = memo(GestureStatusIndicatorComponent);
