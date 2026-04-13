@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { HandLandmarker, HandLandmarkerResult } from "@mediapipe/tasks-vision";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +18,15 @@ type VideoWithFrameCallback = HTMLVideoElement & {
   cancelVideoFrameCallback?: (handle: number) => void;
 };
 
+/**
+ * Clamps the effective FPS target to a safe range and computes the minimum
+ * inter-frame interval in milliseconds.
+ */
+function resolveFrameInterval(maxFps: number): number {
+  const clamped = Math.min(Math.max(maxFps, 5), 60);
+  return 1000 / clamped;
+}
+
 export function useHandTracking(
   videoElement: HTMLVideoElement | null,
   enabled = true,
@@ -35,6 +44,7 @@ export function useHandTracking(
   const lastVideoTimeRef = useRef(-1);
   const lastProcessedAtRef = useRef(0);
   const isVisibleRef = useRef(true);
+  const consecutiveEmptyRef = useRef(0);
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -82,7 +92,8 @@ export function useHandTracking(
           return;
         }
 
-        const message = error instanceof Error ? error.message : "Falha ao carregar o modelo de mao.";
+        const message =
+          error instanceof Error ? error.message : "Falha ao carregar o modelo de mao.";
         logger.error("Falha ao carregar MediaPipe", error);
         setState((previous) => ({ ...previous, status: "error", error: message }));
       }
@@ -103,14 +114,20 @@ export function useHandTracking(
     }
 
     const video = videoElement as VideoWithFrameCallback;
-    const frameInterval = 1000 / Math.max(maxFps, 1);
+    const frameInterval = resolveFrameInterval(maxFps);
     let mounted = true;
 
     lastVideoTimeRef.current = -1;
     lastProcessedAtRef.current = 0;
+    consecutiveEmptyRef.current = 0;
 
-    const scheduleNext = () => {
+    const scheduleNext = (delay?: number) => {
       if (!mounted) {
+        return;
+      }
+
+      if (delay && delay > 0) {
+        setTimeout(() => scheduleNext(), delay);
         return;
       }
 
@@ -139,11 +156,21 @@ export function useHandTracking(
 
       if (video.readyState >= 2 && video.currentTime !== lastVideoTimeRef.current) {
         try {
-          const result: HandLandmarkerResult = landmarkerRef.current!.detectForVideo(video, timestamp);
+          const result: HandLandmarkerResult = landmarkerRef.current!.detectForVideo(
+            video,
+            timestamp,
+          );
           lastVideoTimeRef.current = video.currentTime;
           lastProcessedAtRef.current = timestamp;
 
           const nextLandmarks = result.landmarks?.[0] ?? null;
+
+          if (!nextLandmarks) {
+            consecutiveEmptyRef.current += 1;
+          } else {
+            consecutiveEmptyRef.current = 0;
+          }
+
           setState((previous) => {
             if (!nextLandmarks && !previous.landmarks) {
               return previous;
@@ -153,6 +180,14 @@ export function useHandTracking(
               landmarks: nextLandmarks,
             };
           });
+
+          // Adaptive throttle: when no hand detected for 10+ frames, slow poll to 10fps
+          const adaptiveInterval = consecutiveEmptyRef.current > 10
+            ? Math.max(frameInterval, 100)
+            : undefined;
+
+          scheduleNext(adaptiveInterval);
+          return;
         } catch (error) {
           logger.warn("Erro durante inferencia de gesto", error);
         }
