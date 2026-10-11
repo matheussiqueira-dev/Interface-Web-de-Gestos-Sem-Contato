@@ -70,6 +70,14 @@ describe("exportWorkspaceAsJson", () => {
     exportWorkspaceAsJson(makeSnapshot());
     expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:mock");
   });
+
+  it("revokes the object URL and rethrows when the download fails", () => {
+    clickSpy.mockImplementation(() => {
+      throw new Error("download blocked");
+    });
+    expect(() => exportWorkspaceAsJson(makeSnapshot())).toThrow("download blocked");
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:mock");
+  });
 });
 
 describe("exportNotesAsCsv", () => {

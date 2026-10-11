@@ -116,8 +116,10 @@ describe("computeGestureFrame", () => {
   });
 
   it("respects pinch hysteresis (higher threshold to stop pinch)", () => {
+    // Collapsed palm landmarks give handScale 0, so the absolute fallback thresholds apply
+    // (start 0.05, stop 0.085). A 0.07 gap sits between them.
     const landmarks = makeLandmarks({
-      4: { x: 0.52, y: 0.5 },
+      4: { x: 0.57, y: 0.5 },
       8: { x: 0.5, y: 0.5 },
     });
 
