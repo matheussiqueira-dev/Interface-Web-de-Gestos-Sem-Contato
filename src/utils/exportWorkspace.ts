@@ -4,15 +4,19 @@ export type ExportFormat = "json" | "csv";
 
 /**
  * Triggers a browser file download with the given content, filename and MIME type.
+ * The object URL is always revoked; errors propagate to the caller.
  */
 function triggerDownload(content: string, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  try {
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 /**
