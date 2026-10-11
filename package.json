@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:webpack": "next build --webpack",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "type-check": "tsc --noEmit",
@@ -25,7 +26,7 @@
     "@mediapipe/tasks-vision": "^0.10.8",
     "framer-motion": "^12.31.0",
     "lucide-react": "^0.294.0",
-    "next": "^15.5.10",
+    "next": "^16.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "zod": "^3.24.2"
@@ -33,19 +34,19 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^14.2.0",
-    "@types/node": "^20.17.0",
+    "@types/node": "^22.20.5",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.2.0",
-    "@vitest/coverage-v8": "^1.4.0",
-    "@vitest/ui": "^1.4.0",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "^15.5.10",
+    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/ui": "^5.0.3",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.0",
     "jsdom": "^24.0.0",
     "typescript": "^5.2.2",
-    "vitest": "^1.4.0"
+    "vitest": "^5.0.3"
   },
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=22.12.0"
   }
 }
