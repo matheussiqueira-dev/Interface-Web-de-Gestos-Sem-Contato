@@ -13,7 +13,6 @@ interface RateLimitOptions {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __rateLimitStore: Map<string, RateLimitEntry> | undefined;
 }
 
