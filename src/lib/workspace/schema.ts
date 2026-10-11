@@ -8,10 +8,8 @@ const safeStringRegex = /^[^<>"'`\\;{}()[\]]*$/;
  * Validates that a string contains no HTML-injectable or shell-injectable characters.
  * Applied to user-provided text fields to prevent XSS and injection attacks.
  */
-const safeString = z
-  .string()
-  .trim()
-  .refine((val) => safeStringRegex.test(val), {
+const safeString = (base: z.ZodString) =>
+  base.refine((val) => safeStringRegex.test(val), {
     message: "Texto contém caracteres não permitidos.",
   });
 
@@ -19,7 +17,9 @@ export const noteSchema = z.object({
   id: z.string().regex(idRegex, "ID de nota inválido."),
   x: z.number().finite().min(0).max(10000),
   y: z.number().finite().min(0).max(10000),
-  text: safeString.min(1, "Texto da nota não pode ser vazio.").max(320, "Texto máximo: 320 caracteres."),
+  text: safeString(
+    z.string().trim().min(1, "Texto da nota não pode ser vazio.").max(320, "Texto máximo: 320 caracteres."),
+  ),
   color: z.string().regex(hexColorRegex, "Cor deve ser hexadecimal válida."),
   createdAt: z.string().datetime("createdAt deve ser ISO 8601."),
   updatedAt: z.string().datetime("updatedAt deve ser ISO 8601."),
