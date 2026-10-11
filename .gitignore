@@ -9,3 +9,7 @@ coverage
 .vercel
 .next
 tsconfig.tsbuildinfo
+
+# Local AI tooling
+.claude/
+.cto-toolkit/
