@@ -67,9 +67,6 @@ export function useHandTracking(
 
   useEffect(() => {
     if (!enabled) {
-      setState((previous) => ({ ...previous, landmarks: null, status: "idle", error: null }));
-      landmarkerRef.current?.close?.();
-      landmarkerRef.current = null;
       return;
     }
 
@@ -105,6 +102,7 @@ export function useHandTracking(
       cancelled = true;
       landmarkerRef.current?.close?.();
       landmarkerRef.current = null;
+      setState((previous) => ({ ...previous, landmarks: null, status: "idle", error: null }));
     };
   }, [enabled]);
 

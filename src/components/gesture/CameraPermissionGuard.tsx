@@ -17,7 +17,6 @@ export function CameraPermissionGuard({ children }: CameraPermissionGuardProps) 
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.permissions?.query) {
-      setPermission("idle");
       return;
     }
 

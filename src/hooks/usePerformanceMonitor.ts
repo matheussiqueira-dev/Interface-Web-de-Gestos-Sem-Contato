@@ -15,7 +15,6 @@ export function usePerformanceMonitor(enabled: boolean): PerformanceSnapshot {
 
   useEffect(() => {
     if (!enabled) {
-      setSnapshot(INITIAL);
       return;
     }
 
@@ -32,6 +31,7 @@ export function usePerformanceMonitor(enabled: boolean): PerformanceSnapshot {
 
     return () => {
       cancelAnimationFrame(frameId);
+      setSnapshot(INITIAL);
     };
   }, [enabled]);
 

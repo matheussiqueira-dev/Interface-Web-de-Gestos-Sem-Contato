@@ -165,6 +165,8 @@ export default function GestureWorkspace() {
       idleSaveTimeoutRef.current = null;
     }
 
+    // Each snapshot change starts a debounced save; reflect that in the UI immediately.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSaveStatus("saving");
 
     const timeoutId = window.setTimeout(async () => {

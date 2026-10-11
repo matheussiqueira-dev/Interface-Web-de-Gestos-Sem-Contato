@@ -3,7 +3,6 @@ import { workspaceSchema } from "@/lib/workspace/schema";
 import type { WorkspaceSnapshot } from "@/types/workspace";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __touchlessWorkspace: WorkspaceSnapshot | undefined;
 }
 

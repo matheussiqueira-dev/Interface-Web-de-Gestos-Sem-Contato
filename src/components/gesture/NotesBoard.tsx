@@ -58,6 +58,8 @@ export function NotesBoard({
 
   useEffect(() => {
     if (!trackingEnabled || !isPinching) {
+      // Releasing the pinch ends the drag; this effect syncs with the gesture stream.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraggingId(null);
       return;
     }
