@@ -299,29 +299,6 @@ strong {
   text-shadow: 0 0 10px rgba(0, 229, 255, 0.72);
 }
 
-.floating-whatsapp {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 115;
-  width: 58px;
-  height: 58px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: var(--whatsapp);
-  color: #04140b;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-}
-
-.floating-whatsapp:hover {
-  transform: scale(1.05);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
-  filter: saturate(1.08);
-}
-
 @keyframes scanlineSweep {
   from {
     transform: translateY(-120%);
@@ -345,13 +322,6 @@ strong {
   .global-footer a {
     font-size: 0.58rem;
     letter-spacing: 0.1em;
-  }
-
-  .floating-whatsapp {
-    width: 54px;
-    height: 54px;
-    right: 14px;
-    bottom: 14px;
   }
 }
 

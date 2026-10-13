@@ -24,7 +24,6 @@ export const ENCOM_TOKENS = {
   },
   links: {
     portfolio: "https://www.matheussiqueira.dev/",
-    whatsapp: "https://wa.me/5581999203683",
   },
   typography: {
     heading: "Orbitron",
