@@ -3,7 +3,6 @@ import { Exo_2, Orbitron, Rajdhani } from "next/font/google";
 import type { ReactNode } from "react";
 
 import { AppFooter } from "@/components/layout/AppFooter";
-import { FloatingWhatsAppButton } from "@/components/layout/FloatingWhatsAppButton";
 import "@/styles/globals.css";
 
 const orbitron = Orbitron({
@@ -38,7 +37,6 @@ export default function RootLayout({
       <body className={`${orbitron.variable} ${rajdhani.variable} ${exo2.variable}`}>
         {children}
         <AppFooter />
-        <FloatingWhatsAppButton />
       </body>
     </html>
   );
