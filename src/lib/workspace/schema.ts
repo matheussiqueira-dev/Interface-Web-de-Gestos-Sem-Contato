@@ -3,6 +3,18 @@ import { z } from "zod";
 const idRegex = /^[a-zA-Z0-9_-]{2,64}$/;
 const hexColorRegex = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
 const safeStringRegex = /^[^<>"'`\\;{}()[\]]*$/;
+const unsafeCharacters = /[<>"'`\\;{}()[\]]/g;
+
+export const NOTE_TEXT_MAX_LENGTH = 320;
+
+/**
+ * Removes the characters the note schema rejects, so typed text always stays
+ * saveable. Returns whether anything was removed, for user feedback.
+ */
+export function sanitizeNoteText(text: string): { text: string; changed: boolean } {
+  const cleaned = text.replace(unsafeCharacters, "").slice(0, NOTE_TEXT_MAX_LENGTH);
+  return { text: cleaned, changed: cleaned !== text };
+}
 
 /**
  * Validates that a string contains no HTML-injectable or shell-injectable characters.

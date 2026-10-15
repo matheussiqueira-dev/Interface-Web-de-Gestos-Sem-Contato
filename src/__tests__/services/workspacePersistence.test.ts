@@ -1,154 +1,123 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
+import { createDefaultWorkspaceSnapshot } from "@/lib/workspace/defaults";
 import {
+  getBrowserStorage,
+  LOCAL_STORAGE_KEY,
   loadWorkspaceSnapshot,
   saveWorkspaceSnapshot,
-  trackWorkspaceEvent,
 } from "@/services/workspacePersistence";
 import type { WorkspaceSnapshot } from "@/types/workspace";
 
-const LOCAL_STORAGE_KEY = "touchless_workspace_v3";
-
 function makeSnapshot(overrides: Partial<WorkspaceSnapshot> = {}): WorkspaceSnapshot {
   return {
-    notes: [],
+    notes: [
+      {
+        id: "note-1",
+        x: 10,
+        y: 20,
+        text: "Revisar quadro",
+        color: "#6eb9ff",
+        createdAt: "2026-10-01T10:00:00.000Z",
+        updatedAt: "2026-10-01T10:00:00.000Z",
+      },
+    ],
     settings: {
-      drawingColor: "#00E5FF",
+      drawingColor: "#6eb9ff",
       pinchSensitivity: 1,
       cursorResponsiveness: 1,
-      particlesEnabled: true,
+      particlesEnabled: false,
     },
-    updatedAt: new Date().toISOString(),
+    updatedAt: "2026-10-01T10:00:00.000Z",
     ...overrides,
   };
 }
 
-describe("workspacePersistence", () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
+function failingStorage(): Pick<Storage, "getItem" | "setItem"> {
+  return {
+    getItem: () => {
+      throw new Error("SecurityError");
+    },
+    setItem: () => {
+      throw new Error("QuotaExceededError");
+    },
+  };
+}
 
+describe("workspacePersistence", () => {
   beforeEach(() => {
-    fetchMock = vi.fn();
-    global.fetch = fetchMock;
     localStorage.clear();
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  it("exposes the browser localStorage", () => {
+    expect(getBrowserStorage()).toBe(window.localStorage);
   });
 
   describe("loadWorkspaceSnapshot", () => {
-    it("returns API snapshot and mode='api' on successful fetch", async () => {
-      const snapshot = makeSnapshot({ notes: [{ id: "api-note", x: 0, y: 0, text: "API Note", color: "#00E5FF", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }] });
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => snapshot,
-      });
-
-      const result = await loadWorkspaceSnapshot();
-      expect(result.mode).toBe("api");
-      expect(result.snapshot.notes[0].id).toBe("api-note");
+    it("returns the default workspace when nothing is saved", () => {
+      const result = loadWorkspaceSnapshot();
+      expect(result.source).toBe("default");
+      expect(result.snapshot.notes).toEqual(createDefaultWorkspaceSnapshot().notes);
     });
 
-    it("persists API snapshot to localStorage", async () => {
-      const snapshot = makeSnapshot();
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => snapshot,
-      });
-
-      await loadWorkspaceSnapshot();
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      expect(stored).not.toBeNull();
-    });
-
-    it("falls back to localStorage when API returns non-ok response", async () => {
+    it("returns the saved workspace when it passes validation", () => {
       const snapshot = makeSnapshot();
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
-      fetchMock.mockResolvedValueOnce({ ok: false });
-
-      const result = await loadWorkspaceSnapshot();
-      expect(result.mode).toBe("local");
+      expect(loadWorkspaceSnapshot()).toEqual({ snapshot, source: "saved" });
     });
 
-    it("falls back to localStorage when API request throws", async () => {
+    it("ignores corrupted JSON", () => {
+      localStorage.setItem(LOCAL_STORAGE_KEY, "{not json");
+      expect(loadWorkspaceSnapshot().source).toBe("default");
+    });
+
+    it("drops a note that fails the schema and keeps the rest of the board", () => {
       const snapshot = makeSnapshot();
+      snapshot.notes.push(
+        { ...snapshot.notes[0], id: "note-markup", text: "<img src=x onerror=alert(1)>" },
+        { ...snapshot.notes[0], id: "note-empty", text: "" },
+        { ...snapshot.notes[0] },
+      );
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
-      fetchMock.mockRejectedValueOnce(new Error("Network error"));
 
-      const result = await loadWorkspaceSnapshot();
-      expect(result.mode).toBe("local");
+      const result = loadWorkspaceSnapshot();
+      expect(result.source).toBe("recovered");
+      expect(result.snapshot.notes.map((note) => note.id)).toEqual(["note-1"]);
+      expect(result.snapshot.settings).toEqual(snapshot.settings);
     });
 
-    it("returns default snapshot when both API and localStorage fail", async () => {
-      fetchMock.mockRejectedValueOnce(new Error("Network error"));
-      localStorage.clear();
-
-      const result = await loadWorkspaceSnapshot();
-      expect(result.mode).toBe("local");
-      expect(result.snapshot).toBeDefined();
-      expect(Array.isArray(result.snapshot.notes)).toBe(true);
+    it("recovers notes with default settings when settings are invalid", () => {
+      const snapshot = { ...makeSnapshot(), settings: { pinchSensitivity: 99 } };
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
+      const result = loadWorkspaceSnapshot();
+      expect(result.source).toBe("recovered");
+      expect(result.snapshot.notes).toHaveLength(1);
+      expect(result.snapshot.settings).toEqual(createDefaultWorkspaceSnapshot().settings);
     });
 
-    it("ignores corrupted localStorage data and returns default", async () => {
-      localStorage.setItem(LOCAL_STORAGE_KEY, "not-valid-json{{{");
-      fetchMock.mockRejectedValueOnce(new Error("Network error"));
+    it("falls back to the default when nothing can be recovered", () => {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ notes: [{ id: 1 }], settings: null }));
+      expect(loadWorkspaceSnapshot().source).toBe("default");
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify("text"));
+      expect(loadWorkspaceSnapshot().source).toBe("default");
+    });
 
-      const result = await loadWorkspaceSnapshot();
-      expect(result.snapshot).toBeDefined();
+    it("falls back to the default when storage is unavailable or throws", () => {
+      expect(loadWorkspaceSnapshot(null).source).toBe("default");
+      expect(loadWorkspaceSnapshot(failingStorage()).source).toBe("default");
     });
   });
 
   describe("saveWorkspaceSnapshot", () => {
-    it("always persists snapshot to localStorage", async () => {
+    it("writes the snapshot and reports success", () => {
       const snapshot = makeSnapshot();
-      fetchMock.mockResolvedValueOnce({ ok: true });
-
-      await saveWorkspaceSnapshot(snapshot);
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      expect(stored).not.toBeNull();
+      expect(saveWorkspaceSnapshot(snapshot)).toBe(true);
+      expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) ?? "null")).toEqual(snapshot);
     });
 
-    it("returns 'api' mode on successful PUT", async () => {
-      const snapshot = makeSnapshot();
-      fetchMock.mockResolvedValueOnce({ ok: true });
-
-      const mode = await saveWorkspaceSnapshot(snapshot);
-      expect(mode).toBe("api");
-    });
-
-    it("returns 'local' mode when API PUT fails", async () => {
-      const snapshot = makeSnapshot();
-      fetchMock.mockResolvedValueOnce({ ok: false });
-
-      const mode = await saveWorkspaceSnapshot(snapshot);
-      expect(mode).toBe("local");
-    });
-
-    it("returns 'local' mode when API throws", async () => {
-      const snapshot = makeSnapshot();
-      fetchMock.mockRejectedValueOnce(new Error("Network error"));
-
-      const mode = await saveWorkspaceSnapshot(snapshot);
-      expect(mode).toBe("local");
-    });
-  });
-
-  describe("trackWorkspaceEvent", () => {
-    it("sends POST request with event data", async () => {
-      fetchMock.mockResolvedValueOnce({ ok: true });
-      await trackWorkspaceEvent("workspace_saved", { noteCount: 3 });
-
-      expect(fetchMock).toHaveBeenCalledOnce();
-      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(init.method).toBe("POST");
-      const body = JSON.parse(init.body as string) as { type: string; payload: Record<string, unknown> };
-      expect(body.type).toBe("workspace_saved");
-      expect(body.payload.noteCount).toBe(3);
-    });
-
-    it("does not throw when API request fails", async () => {
-      fetchMock.mockRejectedValueOnce(new Error("Network error"));
-      await expect(trackWorkspaceEvent("camera_error")).resolves.toBeUndefined();
+    it("reports failure when storage is unavailable or full", () => {
+      expect(saveWorkspaceSnapshot(makeSnapshot(), null)).toBe(false);
+      expect(saveWorkspaceSnapshot(makeSnapshot(), failingStorage())).toBe(false);
     });
   });
 });

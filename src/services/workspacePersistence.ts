@@ -1,141 +1,116 @@
-﻿import { createDefaultWorkspaceSnapshot } from "@/lib/workspace/defaults";
-import type { WorkspaceEventType, WorkspaceSnapshot } from "@/types/workspace";
+﻿import { createDefaultWorkspaceSnapshot, DEFAULT_WORKSPACE_SETTINGS } from "@/lib/workspace/defaults";
+import { noteSchema, settingsSchema, workspaceSchema } from "@/lib/workspace/schema";
+import type { WorkspaceSnapshot } from "@/types/workspace";
 
-type PersistenceMode = "api" | "local";
+export const LOCAL_STORAGE_KEY = "touchless_workspace_v3";
 
-interface LoadResult {
-  snapshot: WorkspaceSnapshot;
-  mode: PersistenceMode;
-}
+export type LoadSource = "saved" | "recovered" | "default";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/+$/, "");
-const API_TOKEN = process.env.NEXT_PUBLIC_API_TOKEN ?? "";
-const LOCAL_STORAGE_KEY = "touchless_workspace_v3";
+/**
+ * Keeps every valid note and valid settings from data that failed the full
+ * schema, so one bad note does not discard the whole board.
+ */
+function salvage(data: unknown): WorkspaceSnapshot | null {
+  if (typeof data !== "object" || data === null) {
+    return null;
+  }
 
-function withAuthHeader(initHeaders: HeadersInit = {}): HeadersInit {
-  if (!API_TOKEN) {
-    return initHeaders;
+  const record = data as Record<string, unknown>;
+  const rawNotes = Array.isArray(record.notes) ? record.notes : [];
+  const seen = new Set<string>();
+  const notes = rawNotes.flatMap((raw) => {
+    const parsed = noteSchema.safeParse(raw);
+    if (!parsed.success || seen.has(parsed.data.id)) {
+      return [];
+    }
+    seen.add(parsed.data.id);
+    return [parsed.data];
+  });
+
+  const settings = settingsSchema.safeParse(record.settings);
+  if (notes.length === 0 && !settings.success) {
+    return null;
   }
 
   return {
-    ...initHeaders,
-    "x-api-token": API_TOKEN,
+    notes: notes.slice(0, 64),
+    settings: settings.success ? settings.data : { ...DEFAULT_WORKSPACE_SETTINGS },
+    updatedAt: new Date().toISOString(),
   };
 }
 
-function getApiUrl(path: string): string {
-  return `${API_BASE_URL}${path}`;
+export interface LoadResult {
+  snapshot: WorkspaceSnapshot;
+  source: LoadSource;
 }
 
-function canUseStorage(): boolean {
-  return typeof window !== "undefined" && Boolean(window.localStorage);
-}
+type KeyValueStorage = Pick<Storage, "getItem" | "setItem">;
 
-function safeParseWorkspace(raw: string | null): WorkspaceSnapshot | null {
-  if (!raw) {
-    return null;
-  }
-
+/**
+ * Returns the browser's localStorage, or null when it is unavailable
+ * (server rendering, private browsing, storage disabled by policy).
+ */
+export function getBrowserStorage(): KeyValueStorage | null {
   try {
-    const parsed = JSON.parse(raw) as WorkspaceSnapshot;
-    if (!parsed || !Array.isArray(parsed.notes) || !parsed.settings) {
-      return null;
-    }
-    return parsed;
+    return typeof window !== "undefined" ? window.localStorage : null;
   } catch {
     return null;
   }
 }
 
-function persistLocal(snapshot: WorkspaceSnapshot): void {
-  if (!canUseStorage()) {
-    return;
-  }
-
+/**
+ * Loads the workspace saved in this browser. Stored data is untrusted: it is
+ * validated against the workspace schema and replaced by the default
+ * workspace when missing, corrupted or from an incompatible version.
+ */
+export function loadWorkspaceSnapshot(
+  storage: KeyValueStorage | null = getBrowserStorage(),
+): LoadResult {
+  let raw: string | null = null;
   try {
-    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
+    raw = storage?.getItem(LOCAL_STORAGE_KEY) ?? null;
   } catch {
-    // localStorage may be unavailable in private browsing contexts
+    raw = null;
   }
-}
 
-export async function loadWorkspaceSnapshot(): Promise<LoadResult> {
-  try {
-    const response = await fetch(getApiUrl("/api/v1/workspace"), {
-      method: "GET",
-      headers: {
-        ...withAuthHeader(),
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    });
-
-    if (response.ok) {
-      const snapshot = (await response.json()) as WorkspaceSnapshot;
-      persistLocal(snapshot);
-      return { snapshot, mode: "api" };
+  if (raw) {
+    let data: unknown = null;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      // corrupted JSON falls through to the default workspace
     }
-  } catch {
-    // fallback to local storage
+
+    const parsed = workspaceSchema.safeParse(data);
+    if (parsed.success) {
+      return { snapshot: parsed.data, source: "saved" };
+    }
+
+    const recovered = salvage(data);
+    if (recovered) {
+      return { snapshot: recovered, source: "recovered" };
+    }
   }
 
-  const localSnapshot = canUseStorage()
-    ? safeParseWorkspace(window.localStorage.getItem(LOCAL_STORAGE_KEY))
-    : null;
-
-  if (localSnapshot) {
-    return { snapshot: localSnapshot, mode: "local" };
-  }
-
-  const defaultSnapshot = createDefaultWorkspaceSnapshot();
-  persistLocal(defaultSnapshot);
-  return { snapshot: defaultSnapshot, mode: "local" };
+  return { snapshot: createDefaultWorkspaceSnapshot(), source: "default" };
 }
 
-export async function saveWorkspaceSnapshot(
+/**
+ * Saves the workspace in this browser. Returns false when storage is
+ * unavailable or full, so the UI can say the change was not kept.
+ */
+export function saveWorkspaceSnapshot(
   snapshot: WorkspaceSnapshot,
-): Promise<PersistenceMode> {
-  persistLocal(snapshot);
-
-  try {
-    const response = await fetch(getApiUrl("/api/v1/workspace"), {
-      method: "PUT",
-      headers: {
-        ...withAuthHeader(),
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(snapshot),
-    });
-
-    if (response.ok) {
-      return "api";
-    }
-  } catch {
-    // fallback remains local
+  storage: KeyValueStorage | null = getBrowserStorage(),
+): boolean {
+  if (!storage) {
+    return false;
   }
 
-  return "local";
-}
-
-export async function trackWorkspaceEvent(
-  type: WorkspaceEventType,
-  payload: Record<string, string | number | boolean | null> = {},
-): Promise<void> {
   try {
-    await fetch(getApiUrl("/api/v1/events"), {
-      method: "POST",
-      headers: {
-        ...withAuthHeader(),
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        type,
-        payload,
-        occurredAt: new Date().toISOString(),
-      }),
-    });
+    storage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
+    return true;
   } catch {
-    // telemetry is best-effort
+    return false;
   }
 }
