@@ -1,50 +1,37 @@
 /** @type {import('next').NextConfig} */
 
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
+const isDevelopment = process.env.NODE_ENV !== "production";
+
+// MediaPipe compiles its WASM at runtime ('wasm-unsafe-eval'); its loader does not use eval.
+// 'unsafe-eval' is only needed by the Next.js dev server for fast refresh.
+const scriptSources = [
+  "'self'",
+  "'unsafe-inline'",
+  "'wasm-unsafe-eval'",
+  ...(isDevelopment ? ["'unsafe-eval'"] : []),
+  "https://cdn.jsdelivr.net",
+];
 
 const securityHeaders = [
-  {
-    key: "X-DNS-Prefetch-Control",
-    value: "on",
-  },
-  {
-    key: "X-Content-Type-Options",
-    value: "nosniff",
-  },
-  {
-    key: "X-Frame-Options",
-    value: "SAMEORIGIN",
-  },
-  {
-    key: "X-XSS-Protection",
-    value: "1; mode=block",
-  },
-  {
-    key: "Referrer-Policy",
-    value: "strict-origin-when-cross-origin",
-  },
-  {
-    key: "Permissions-Policy",
-    value: "camera=self, microphone=(), geolocation=()",
-  },
-  {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains; preload",
-  },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com",
+      `script-src ${scriptSources.join(" ")}`,
+      "style-src 'self' 'unsafe-inline'",
+      "font-src 'self'",
       "img-src 'self' data: blob:",
       "media-src 'self' blob:",
       "connect-src 'self' https://storage.googleapis.com https://cdn.jsdelivr.net",
       "worker-src 'self' blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
       "frame-ancestors 'none'",
     ].join("; "),
   },
@@ -52,6 +39,7 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   experimental: {
     optimizePackageImports: ["@mediapipe/tasks-vision"],
   },
@@ -64,22 +52,12 @@ const nextConfig = {
       {
         source: "/api/:path*",
         headers: [
-          {
-            key: "Cache-Control",
-            value: "no-store, no-cache, must-revalidate",
-          },
-          ...securityHeaders,
+          { key: "Cache-Control", value: "no-store" },
+          { key: "X-Robots-Tag", value: "noindex" },
         ],
       },
     ];
   },
-  async rewrites() {
-    return [];
-  },
 };
-
-if (ALLOWED_ORIGINS.length > 0) {
-  console.info("[next.config] CORS allowlist:", ALLOWED_ORIGINS);
-}
 
 module.exports = nextConfig;
