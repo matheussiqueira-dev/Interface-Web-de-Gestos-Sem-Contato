@@ -1,0 +1,2 @@
+# Shared design tokens are compared by SHA-256; keep LF on every platform.
+src/app/ms-tokens.css text eol=lf

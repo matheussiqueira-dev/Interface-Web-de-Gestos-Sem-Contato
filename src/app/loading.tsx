@@ -1,3 +1,7 @@
 ﻿export default function Loading() {
-  return <div className="screen-loading">Inicializando terminal ENCOM...</div>;
+  return (
+    <div className="ms-container workspace-loading" role="status">
+      Carregando…
+    </div>
+  );
 }
