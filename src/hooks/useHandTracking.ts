@@ -45,6 +45,8 @@ export function useHandTracking(
   const lastProcessedAtRef = useRef(0);
   const isVisibleRef = useRef(true);
   const consecutiveEmptyRef = useRef(0);
+  // The model is only downloaded once a camera stream exists.
+  const active = enabled && videoElement !== null;
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -66,7 +68,7 @@ export function useHandTracking(
   }, []);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!active) {
       return;
     }
 
@@ -104,7 +106,7 @@ export function useHandTracking(
       landmarkerRef.current = null;
       setState((previous) => ({ ...previous, landmarks: null, status: "idle", error: null }));
     };
-  }, [enabled]);
+  }, [active]);
 
   useEffect(() => {
     if (!enabled || !videoElement || !landmarkerRef.current || state.status !== "ready") {
