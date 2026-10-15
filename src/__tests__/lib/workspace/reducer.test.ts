@@ -195,6 +195,48 @@ describe("workspaceReducer", () => {
     });
   });
 
+  describe("note drag", () => {
+    const withNote = () =>
+      dispatch(createInitialWorkspaceState(), {
+        type: "hydrate",
+        payload: { notes: [makeNote()], settings: makeSettings(), updatedAt: "2026-01-01T00:00:00.000Z" },
+      });
+
+    it("records one history entry per drag, not one per move", () => {
+      let next = dispatch(withNote(), { type: "beginNoteDrag" });
+      for (let step = 1; step <= 20; step++) {
+        next = dispatch(next, { type: "moveNote", payload: { id: "note-1", x: 100 + step, y: 200 } });
+      }
+
+      expect(next.history).toHaveLength(1);
+      expect(next.snapshot.notes[0]).toMatchObject({ x: 120, y: 200 });
+
+      const undone = dispatch(next, { type: "undo" });
+      expect(undone.snapshot.notes[0]).toMatchObject({ x: 100, y: 200 });
+    });
+
+    it("moveNote leaves other notes untouched", () => {
+      const state = dispatch(withNote(), { type: "addNote", payload: makeNote({ id: "note-2", x: 5 }) });
+      const next = dispatch(state, { type: "moveNote", payload: { id: "note-1", x: 1, y: 2 } });
+      expect(next.snapshot.notes[1]).toBe(state.snapshot.notes[1]);
+    });
+  });
+
+  describe("updateNoteText", () => {
+    it("changes only the target note text and is undoable", () => {
+      const state = dispatch(createInitialWorkspaceState(), {
+        type: "hydrate",
+        payload: { notes: [makeNote()], settings: makeSettings(), updatedAt: "2026-01-01T00:00:00.000Z" },
+      });
+      const next = dispatch(state, { type: "updateNoteText", payload: { id: "note-1", text: "Novo texto" } });
+      expect(next.snapshot.notes[0].text).toBe("Novo texto");
+      expect(next.history).toHaveLength(1);
+      expect(dispatch(state, { type: "updateNoteText", payload: { id: "missing", text: "x" } }).snapshot.notes[0].text).toBe(
+        "Test note",
+      );
+    });
+  });
+
   describe("unknown action", () => {
     it("returns state unchanged for unknown action type", () => {
       // @ts-expect-error intentionally testing unknown action
