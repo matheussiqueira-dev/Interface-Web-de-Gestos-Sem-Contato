@@ -12,8 +12,39 @@ const COMPACT_BOARD_WIDTH = 600;
  */
 export function getNoteSize(boardWidth: number): Size {
   return boardWidth < COMPACT_BOARD_WIDTH
-    ? { width: 160, height: 128 }
+    ? { width: 148, height: 120 }
     : { width: 232, height: 168 };
+}
+
+interface Positioned {
+  id: string;
+  x: number;
+  y: number;
+}
+
+/**
+ * Returns the topmost note under a point (later notes render above earlier
+ * ones), using the clamped position the note is actually drawn at.
+ */
+export function findNoteAt<T extends Positioned>(
+  notes: readonly T[],
+  point: { x: number; y: number },
+  board: Size,
+): (T & { renderX: number; renderY: number }) | null {
+  const size = getNoteSize(board.width);
+  for (let index = notes.length - 1; index >= 0; index--) {
+    const note = notes[index];
+    const position = clampNotePosition(note, board);
+    if (
+      point.x >= position.x &&
+      point.x <= position.x + size.width &&
+      point.y >= position.y &&
+      point.y <= position.y + size.height
+    ) {
+      return { ...note, renderX: position.x, renderY: position.y };
+    }
+  }
+  return null;
 }
 
 /**

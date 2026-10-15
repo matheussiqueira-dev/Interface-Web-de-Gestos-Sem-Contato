@@ -137,7 +137,10 @@ export function createDemoScene(board: Size): DemoScene {
   const created = "2026-01-01T00:00:00.000Z";
 
   const dragged = clampNotePosition({ x: 16, y: 16 }, board);
-  const fixed = clampNotePosition({ x: board.width - note.width - 16, y: 16 }, board);
+  const fixed = clampNotePosition(
+    { x: Math.max(dragged.x + note.width + 12, board.width - note.width - 16), y: 16 },
+    board,
+  );
   const target = clampNotePosition(
     { x: board.width * 0.5 - note.width / 2, y: board.height * 0.38 },
     board,
@@ -149,7 +152,7 @@ export function createDemoScene(board: Size): DemoScene {
       x: dragged.x,
       y: dragged.y,
       color: "#6eb9ff",
-      text: "A mão simulada fecha a pinça sobre esta nota e a arrasta.",
+      text: "A mão simulada vai arrastar esta nota.",
       createdAt: created,
       updatedAt: created,
     },
@@ -158,7 +161,7 @@ export function createDemoScene(board: Size): DemoScene {
       x: fixed.x,
       y: fixed.y,
       color: "#f8ba8a",
-      text: "Na pinça sobre o espaço livre, o cursor desenha.",
+      text: "No espaço livre, a pinça desenha.",
       createdAt: created,
       updatedAt: created,
     },

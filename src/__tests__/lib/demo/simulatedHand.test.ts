@@ -82,7 +82,7 @@ describe("sampleScript", () => {
 
 describe("createDemoScene", () => {
   it.each([
-    { width: 343, height: 460 },
+    { width: 337, height: 460 },
     { width: 1100, height: 620 },
   ])("keeps notes inside a $width x $height board", (board) => {
     const scene = createDemoScene(board);
@@ -95,10 +95,18 @@ describe("createDemoScene", () => {
       expect(item.y + note.height).toBeLessThanOrEqual(board.height);
     }
     expect(scene.durationMs).toBe(scene.script[scene.script.length - 1].at);
+
+    const [first, second] = scene.notes;
+    const overlaps =
+      first.x < second.x + note.width &&
+      second.x < first.x + note.width &&
+      first.y < second.y + note.height &&
+      second.y < first.y + note.height;
+    expect(overlaps).toBe(false);
   });
 
   it.each([
-    { width: 343, height: 460 },
+    { width: 337, height: 460 },
     { width: 1100, height: 620 },
   ])("drives the real engine: grabs the note, then draws in free space ($width px)", (board) => {
     const scene = createDemoScene(board);

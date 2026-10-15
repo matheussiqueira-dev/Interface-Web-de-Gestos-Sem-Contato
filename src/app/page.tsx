@@ -1,5 +1,5 @@
-﻿import { WorkspaceEntry } from "@/components/layout/WorkspaceEntry";
+﻿import { GestureApp } from "@/components/app/GestureApp";
 
 export default function HomePage() {
-  return <WorkspaceEntry />;
+  return <GestureApp />;
 }
