@@ -1,7 +1,7 @@
 {
   "name": "touchless-interface-next",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Quadro de notas e desenho controlado pela mão via webcam, com MediaPipe no navegador, Next.js 16 e TypeScript",
   "author": "Matheus Siqueira <hellomatheusdev@gmail.com> (https://www.matheussiqueira.dev)",
   "license": "MIT",
