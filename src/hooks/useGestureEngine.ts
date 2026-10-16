@@ -14,6 +14,7 @@ import { clamp } from "@/utils/geometry";
 
 const EMIT_INTERVAL_MS = 1000 / 60;
 const MOVEMENT_EPSILON = 0.2;
+const PROGRESS_EPSILON = 0.02;
 
 export function useGestureEngine(
   landmarks: HandLandmark[] | null,
@@ -61,6 +62,7 @@ export function useGestureEngine(
         handDetected: false,
         swipeDirection: null,
         gestureConfidence: 0,
+        pinchProgress: 0,
       };
 
       pinchingRef.current = false;
@@ -92,7 +94,8 @@ export function useGestureEngine(
       frame.state.isPinching !== previous.isPinching ||
       frame.state.isFist !== previous.isFist ||
       frame.state.handDetected !== previous.handDetected ||
-      frame.state.swipeDirection !== previous.swipeDirection;
+      frame.state.swipeDirection !== previous.swipeDirection ||
+      Math.abs(frame.state.pinchProgress - previous.pinchProgress) >= PROGRESS_EPSILON;
 
     const now = performance.now();
     if (

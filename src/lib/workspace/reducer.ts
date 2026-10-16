@@ -11,11 +11,14 @@ export interface WorkspaceState {
   future: WorkspaceSnapshot[];
 }
 
-type WorkspaceAction =
+export type WorkspaceAction =
   | { type: "hydrate"; payload: WorkspaceSnapshot }
   | { type: "setNotes"; payload: WorkspaceNote[] }
   | { type: "addNote"; payload: WorkspaceNote }
   | { type: "removeNote"; payload: string }
+  | { type: "updateNoteText"; payload: { id: string; text: string } }
+  | { type: "beginNoteDrag" }
+  | { type: "moveNote"; payload: { id: string; x: number; y: number } }
   | { type: "setSettings"; payload: WorkspaceSettings }
   | { type: "patchSettings"; payload: Partial<WorkspaceSettings> }
   | { type: "toggleTracking" }
@@ -92,6 +95,37 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
         ...state.snapshot,
         notes: state.snapshot.notes.filter((note) => note.id !== action.payload),
       });
+
+    case "updateNoteText":
+      return applySnapshotChange(state, {
+        ...state.snapshot,
+        notes: state.snapshot.notes.map((note) =>
+          note.id === action.payload.id
+            ? { ...note, text: action.payload.text, updatedAt: new Date().toISOString() }
+            : note,
+        ),
+      });
+
+    // A drag records one history entry when it starts; the moves that follow are transient.
+    case "beginNoteDrag":
+      return {
+        ...state,
+        history: pushHistory(state.history, state.snapshot),
+        future: [],
+      };
+
+    case "moveNote":
+      return {
+        ...state,
+        snapshot: withTimestamp({
+          ...state.snapshot,
+          notes: state.snapshot.notes.map((note) =>
+            note.id === action.payload.id
+              ? { ...note, x: action.payload.x, y: action.payload.y, updatedAt: new Date().toISOString() }
+              : note,
+          ),
+        }),
+      };
 
     case "setSettings":
       return applySnapshotChange(state, {

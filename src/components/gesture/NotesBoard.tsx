@@ -1,209 +1,115 @@
 ﻿"use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { GripVertical, Trash2 } from "lucide-react";
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { Move, Trash2 } from "lucide-react";
+import type { CSSProperties, KeyboardEvent } from "react";
 
+import { clampNotePosition, getNoteSize, type Size } from "@/lib/workspace/layout";
+import { NOTE_TEXT_MAX_LENGTH } from "@/lib/workspace/schema";
 import type { WorkspaceNote } from "@/types/workspace";
-import { clamp } from "@/utils/geometry";
+
+const NUDGE_STEP = 8;
+const NUDGE_STEP_LARGE = 32;
+
+const ARROWS: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+};
 
 interface NotesBoardProps {
-  notes: WorkspaceNote[];
-  cursorX: number;
-  cursorY: number;
-  isPinching: boolean;
-  trackingEnabled: boolean;
-  width: number;
-  height: number;
-  onChange: (notes: WorkspaceNote[]) => void;
-  onDeleteNote: (noteId: string) => void;
-  selectedNoteId: string | null;
-  onSelectNote: (noteId: string | null) => void;
+  notes: readonly WorkspaceNote[];
+  board: Size;
+  draggingId: string | null;
+  targetedId: string | null;
+  onTextChange: (noteId: string, text: string) => void;
+  onDelete: (noteId: string) => void;
+  onNudge: (noteId: string, dx: number, dy: number) => void;
 }
 
-const NOTE_WIDTH = 248;
-const NOTE_HEIGHT = 190;
-const BOARD_PADDING = 24;
-
+/**
+ * The notes layer. Hands and pointers move notes through useNoteDrag; this
+ * component renders them and gives every note a keyboard path: arrow keys on
+ * the handle move it, the text field edits it, the trash button removes it.
+ */
 export function NotesBoard({
   notes,
-  cursorX,
-  cursorY,
-  isPinching,
-  trackingEnabled,
-  width,
-  height,
-  onChange,
-  onDeleteNote,
-  selectedNoteId,
-  onSelectNote,
+  board,
+  draggingId,
+  targetedId,
+  onTextChange,
+  onDelete,
+  onNudge,
 }: NotesBoardProps) {
-  const notesRef = useRef(notes);
-  const dragOffsetRef = useRef({ x: 0, y: 0 });
-  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const size = getNoteSize(board.width);
 
-  const bounds = useMemo(
-    () => ({
-      minX: BOARD_PADDING,
-      minY: BOARD_PADDING,
-      maxX: Math.max(BOARD_PADDING, width - NOTE_WIDTH - BOARD_PADDING),
-      maxY: Math.max(BOARD_PADDING, height - NOTE_HEIGHT - BOARD_PADDING),
-    }),
-    [height, width],
-  );
-
-  useEffect(() => {
-    notesRef.current = notes;
-  }, [notes]);
-
-  useEffect(() => {
-    if (!trackingEnabled || !isPinching) {
-      // Releasing the pinch ends the drag; this effect syncs with the gesture stream.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDraggingId(null);
+  const handleKeyDown = (noteId: string) => (event: KeyboardEvent<HTMLButtonElement>) => {
+    const direction = ARROWS[event.key];
+    if (!direction) {
       return;
     }
-
-    if (draggingId) {
-      const nextNotes = notesRef.current.map((note) => {
-        if (note.id !== draggingId) {
-          return note;
-        }
-
-        const nextX = clamp(cursorX - dragOffsetRef.current.x, bounds.minX, bounds.maxX);
-        const nextY = clamp(cursorY - dragOffsetRef.current.y, bounds.minY, bounds.maxY);
-
-        if (Math.abs(nextX - note.x) < 0.2 && Math.abs(nextY - note.y) < 0.2) {
-          return note;
-        }
-
-        return {
-          ...note,
-          x: nextX,
-          y: nextY,
-          updatedAt: new Date().toISOString(),
-        };
-      });
-
-      onChange(nextNotes);
-      return;
-    }
-
-    const hitNote = [...notesRef.current].reverse().find((note) => {
-      return (
-        cursorX >= note.x &&
-        cursorX <= note.x + NOTE_WIDTH &&
-        cursorY >= note.y &&
-        cursorY <= note.y + NOTE_HEIGHT
-      );
-    });
-
-    if (hitNote) {
-      setDraggingId(hitNote.id);
-      onSelectNote(hitNote.id);
-      dragOffsetRef.current = {
-        x: cursorX - hitNote.x,
-        y: cursorY - hitNote.y,
-      };
-    }
-  }, [
-    bounds.maxX,
-    bounds.maxY,
-    bounds.minX,
-    bounds.minY,
-    cursorX,
-    cursorY,
-    draggingId,
-    isPinching,
-    onChange,
-    onSelectNote,
-    trackingEnabled,
-  ]);
-
-  const handleNoteTextChange = (noteId: string, text: string) => {
-    const nextNotes = notesRef.current.map((note) => {
-      if (note.id !== noteId) {
-        return note;
-      }
-
-      return {
-        ...note,
-        text,
-        updatedAt: new Date().toISOString(),
-      };
-    });
-
-    onChange(nextNotes);
+    event.preventDefault();
+    const step = event.shiftKey ? NUDGE_STEP_LARGE : NUDGE_STEP;
+    onNudge(noteId, direction[0] * step, direction[1] * step);
   };
 
   return (
-    <div className="notes-board" aria-label="Quadro de notas">
-      <AnimatePresence>
-        {notes.map((note) => {
-          const selected = note.id === selectedNoteId;
-          const dragging = draggingId === note.id;
+    <div className="board__notes">
+      <p id="note-move-help" className="ms-sr-only">
+        Use as setas para mover a nota; com Shift, o passo é maior.
+      </p>
+      {notes.map((note, index) => {
+        const position = clampNotePosition(note, board);
+        const state = note.id === draggingId ? "dragging" : note.id === targetedId ? "targeted" : undefined;
 
-          return (
-            <motion.article
-              key={note.id}
-              className="note-card"
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{
-                opacity: 1,
-                scale: dragging ? 1.04 : selected ? 1.02 : 1,
-                x: note.x,
-                y: note.y,
-                boxShadow: dragging
-                  ? `0 0 0 1px ${note.color}, 0 0 22px ${note.color}, 0 24px 38px rgba(0, 0, 0, 0.48)`
-                  : selected
-                    ? `0 0 0 1px ${note.color}, 0 0 16px ${note.color}, 0 16px 30px rgba(0, 0, 0, 0.42)`
-                    : `0 0 0 1px ${note.color}88, 0 0 12px ${note.color}44, 0 10px 18px rgba(0, 0, 0, 0.34)`,
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 320,
-                damping: 30,
-                x: { duration: 0.06 },
-                y: { duration: 0.06 },
-              }}
-              style={{
-                left: 0,
-                top: 0,
-                position: "absolute",
-                zIndex: selected || dragging ? 35 : 20,
-                ["--note-accent" as string]: note.color,
-              } as CSSProperties}
-              onPointerDown={() => onSelectNote(note.id)}
-              role="group"
-              aria-label={`Nota ${note.id}`}
-            >
-              <header className="note-header">
-                <span className="note-drag-hint">
-                  <GripVertical size={14} />
-                  Pinca para mover
-                </span>
-                <button
-                  className="note-delete-btn"
-                  type="button"
-                  aria-label="Excluir nota"
-                  onClick={() => onDeleteNote(note.id)}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </header>
-
-              <textarea
-                className="note-textarea"
-                value={note.text}
-                onFocus={() => onSelectNote(note.id)}
-                onChange={(event) => handleNoteTextChange(note.id, event.target.value)}
-                maxLength={320}
-                aria-label="Texto da nota"
-              />
-            </motion.article>
-          );
-        })}
-      </AnimatePresence>
+        return (
+          <article
+            key={note.id}
+            className="note"
+            data-state={state}
+            aria-label={`Nota ${index + 1}`}
+            style={
+              {
+                width: size.width,
+                height: size.height,
+                transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+                "--note-color": note.color,
+              } as CSSProperties
+            }
+          >
+            <div className="note__bar">
+              <button
+                type="button"
+                className="note__handle ms-focus-inset"
+                data-drag-handle
+                aria-label={`Mover nota ${index + 1}`}
+                aria-describedby="note-move-help"
+                onKeyDown={handleKeyDown(note.id)}
+              >
+                <Move size={16} strokeWidth={1.75} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="note__delete ms-focus-inset"
+                aria-label={`Excluir nota ${index + 1}`}
+                onClick={() => onDelete(note.id)}
+              >
+                <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            </div>
+            <label className="ms-sr-only" htmlFor={`note-text-${note.id}`}>
+              Texto da nota {index + 1}
+            </label>
+            <textarea
+              id={`note-text-${note.id}`}
+              className="note__text"
+              value={note.text}
+              maxLength={NOTE_TEXT_MAX_LENGTH}
+              onChange={(event) => onTextChange(note.id, event.target.value)}
+            />
+          </article>
+        );
+      })}
     </div>
   );
 }

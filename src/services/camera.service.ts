@@ -1,15 +1,33 @@
 import { logger } from "@/core/system/logger";
-import type { CameraSetupOptions } from "@/types/camera";
+import type { CameraError, CameraErrorKind, CameraSetupOptions } from "@/types/camera";
 
+// Hand landmarks do not need HD frames; 640x360 halves decoding and inference work.
 const DEFAULT_CAMERA_OPTIONS: Required<CameraSetupOptions> = {
-  width: 1280,
-  height: 720,
+  width: 640,
+  height: 360,
   frameRate: 30,
   facingMode: "user",
 };
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 800;
+
+const MESSAGES: Record<CameraErrorKind, string> = {
+  denied:
+    "A câmera foi bloqueada. Libere o acesso no ícone de cadeado da barra de endereço e clique em Tentar novamente.",
+  "not-found": "Nenhuma câmera encontrada. Você pode usar o quadro com mouse ou toque.",
+  busy: "A câmera está em uso por outro aplicativo. Feche-o e clique em Tentar novamente.",
+  unsupported: "Este navegador não dá acesso à câmera. Você pode usar o quadro com mouse ou toque.",
+  unknown: "Não foi possível iniciar a câmera. Tente novamente.",
+};
+
+/** Thrown when the browser has no getUserMedia (old browser or insecure origin). */
+export class CameraUnsupportedError extends Error {
+  constructor() {
+    super(MESSAGES.unsupported);
+    this.name = "CameraUnsupportedError";
+  }
+}
 
 /**
  * Returns true when the current environment supports getUserMedia.
@@ -18,28 +36,39 @@ export function isCameraSupported(): boolean {
   return typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getUserMedia);
 }
 
+function errorName(error: unknown): string | null {
+  if (error instanceof DOMException || error instanceof Error) {
+    return error.name;
+  }
+  return null;
+}
+
 /**
- * Maps a camera access error to a user-facing Portuguese message.
+ * Maps a camera failure to a kind the UI can act on and a user-facing message.
  */
-export function resolveCameraError(error: unknown): string {
-  if (!(error instanceof DOMException)) {
-    return "Nao foi possivel acessar a camera.";
+export function classifyCameraError(error: unknown): CameraError {
+  let kind: CameraErrorKind;
+  switch (errorName(error)) {
+    case "NotAllowedError":
+    case "SecurityError":
+      kind = "denied";
+      break;
+    case "NotFoundError":
+    case "OverconstrainedError":
+      kind = "not-found";
+      break;
+    case "NotReadableError":
+    case "AbortError":
+      kind = "busy";
+      break;
+    case "CameraUnsupportedError":
+      kind = "unsupported";
+      break;
+    default:
+      kind = "unknown";
   }
 
-  switch (error.name) {
-    case "NotAllowedError":
-      return "Permissao de camera negada. Libere o acesso e recarregue a pagina.";
-    case "NotFoundError":
-      return "Nenhuma camera foi encontrada no dispositivo.";
-    case "NotReadableError":
-      return "A camera esta em uso por outro aplicativo.";
-    case "OverconstrainedError":
-      return "As configuracoes de camera solicitadas nao sao suportadas pelo dispositivo.";
-    case "AbortError":
-      return "O acesso a camera foi interrompido inesperadamente.";
-    default:
-      return "Falha ao iniciar stream da camera.";
-  }
+  return { kind, message: MESSAGES[kind] };
 }
 
 function delay(ms: number): Promise<void> {
@@ -70,14 +99,15 @@ async function attemptStartCamera(
  * the given video element. Retries up to MAX_RETRIES times with a delay on
  * transient failures (NotReadableError, AbortError).
  *
- * @throws If camera is not supported or access is denied after all retries
+ * @throws CameraUnsupportedError when getUserMedia is missing, or the last
+ * getUserMedia error after all retries
  */
 export async function startCamera(
   videoElement: HTMLVideoElement,
   options: CameraSetupOptions = {},
 ): Promise<MediaStream> {
   if (!isCameraSupported()) {
-    throw new Error("Seu navegador nao suporta getUserMedia.");
+    throw new CameraUnsupportedError();
   }
 
   const merged = { ...DEFAULT_CAMERA_OPTIONS, ...options };
@@ -96,8 +126,7 @@ export async function startCamera(
     } catch (error) {
       lastError = error;
 
-      const isRetryable =
-        error instanceof DOMException && retryableErrors.has(error.name);
+      const isRetryable = error instanceof DOMException && retryableErrors.has(error.name);
 
       if (!isRetryable || attempt === MAX_RETRIES) {
         break;

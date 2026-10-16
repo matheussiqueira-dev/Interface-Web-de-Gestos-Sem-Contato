@@ -5,6 +5,7 @@ import {
   detectFist,
   detectPinch,
   detectSwipe,
+  distance,
   getHandScale,
 } from "@/utils/gestures";
 import { clamp, landmarkToScreen, lerp } from "@/utils/geometry";
@@ -50,6 +51,7 @@ export function createInitialGestureState(width: number, height: number): Gestur
     handDetected: false,
     swipeDirection: null,
     gestureConfidence: 0,
+    pinchProgress: 0,
   };
 }
 
@@ -131,6 +133,8 @@ export function computeGestureFrame(input: GestureEngineFrameInput): GestureEngi
   const isPinching = detectPinch(landmarks, pinchThreshold);
   const isFist = detectFist(landmarks);
   const gestureConfidence = computePinchConfidence(landmarks, pinchThreshold);
+  const thumbIndexGap = distance(landmarks[4], landmarks[8]);
+  const pinchProgress = thumbIndexGap > 0 ? clamp(pinchThreshold / thumbIndexGap, 0, 1) : 1;
 
   const swipeResult = detectSwipe(cursorHistory);
   const swipeDirection: SwipeDirection | null = swipeResult?.direction ?? null;
@@ -144,6 +148,7 @@ export function computeGestureFrame(input: GestureEngineFrameInput): GestureEngi
       handDetected: true,
       swipeDirection,
       gestureConfidence,
+      pinchProgress,
     },
     cursor: { x: smoothX, y: smoothY },
     isPinching,

@@ -137,6 +137,24 @@ describe("computeGestureFrame", () => {
     expect(stopOutput.isPinching).toBe(true);
   });
 
+  it("reports pinch progress as threshold / gap, closing as the fingers approach", () => {
+    // handScale 0 => absolute thresholds: start 0.05, stop 0.085
+    const progressAt = (gap: number, previousPinching: boolean) =>
+      computeGestureFrame(
+        makeFrameInput({
+          landmarks: makeLandmarks({ 4: { x: 0.5 + gap, y: 0.5 }, 8: { x: 0.5, y: 0.5 } }),
+          previousPinching,
+        }),
+      ).state.pinchProgress;
+
+    expect(progressAt(0.1, false)).toBeCloseTo(0.5);
+    expect(progressAt(0.07, false)).toBeCloseTo(0.05 / 0.07);
+    expect(progressAt(0.03, false)).toBe(1);
+    // Hysteresis: the same 0.07 gap is inside the larger stop threshold while pinching
+    expect(progressAt(0.07, true)).toBe(1);
+    expect(progressAt(0, false)).toBe(1);
+  });
+
   it("output cursor coordinates match state coordinates", () => {
     const output = computeGestureFrame(makeFrameInput());
     expect(output.cursor.x).toBe(output.state.cursorX);
