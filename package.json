@@ -2,10 +2,10 @@
   "name": "touchless-interface-next",
   "private": true,
   "version": "2.1.0",
-  "description": "Interface web fullstack de gestos sem contato — MediaPipe + Next.js 15 + TypeScript",
-  "author": "Matheus Siqueira <matheus@matheussiqueira.dev> (http://www.matheussiqueira.dev/)",
+  "description": "Quadro de notas e desenho controlado pela mão via webcam, com MediaPipe no navegador, Next.js 16 e TypeScript",
+  "author": "Matheus Siqueira <hellomatheusdev@gmail.com> (https://www.matheussiqueira.dev)",
   "license": "MIT",
-  "homepage": "http://www.matheussiqueira.dev/",
+  "homepage": "https://interface-web-de-gestos-sem-contato.vercel.app",
   "repository": {
     "type": "git",
     "url": "https://github.com/matheussiqueira-dev/Interface-Web-de-Gestos-Sem-Contato.git"
@@ -47,5 +47,8 @@
   },
   "engines": {
     "node": ">=22.12.0"
+  },
+  "bugs": {
+    "url": "https://github.com/matheussiqueira-dev/Interface-Web-de-Gestos-Sem-Contato/issues"
   }
 }
