@@ -98,7 +98,7 @@ A escrita fecha por padrão: sem `API_TOKEN` configurado no servidor, as rotas d
 | Lint | `npm run lint` | 0 erros, 0 avisos |
 | Tipos | `npm run type-check` | TypeScript estrito, sem erros |
 | Testes | `npm test` | 231 testes em 26 arquivos |
-| Cobertura | `npm run test:coverage` | 96,8% de linhas e 91% de branches em `lib`, `hooks`, `services` e `utils`; mínimo exigido de 80% |
+| Cobertura | `npm run test:coverage` | 97,1% de linhas e 91% de branches em `lib`, `hooks`, `services` e `utils`; mínimo exigido de 80% |
 | Build | `npm run build` | Next.js 16 |
 
 ## Executar localmente
